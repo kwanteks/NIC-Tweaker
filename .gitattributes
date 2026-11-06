@@ -1,0 +1,86 @@
+# =============================================================================
+# Line endings
+# =============================================================================
+* text=auto eol=crlf
+
+# Windows-native project / scripts → CRLF
+*.sln   text eol=crlf
+*.slnx  text eol=crlf
+*.csproj text eol=crlf
+*.vbproj text eol=crlf
+*.fsproj text eol=crlf
+*.props text eol=crlf
+*.targets text eol=crlf
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+*.ps1   text eol=crlf
+*.psm1  text eol=crlf
+*.psd1  text eol=crlf
+*.reg   text eol=crlf
+*.xaml  text eol=crlf
+*.cs    text eol=crlf diff=csharp
+*.manifest text eol=crlf
+*.appxmanifest text eol=crlf
+*.pubxml text eol=crlf
+
+# Cross-platform / docs → LF
+*.sh    text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+*.md    text eol=lf
+*.json  text eol=lf
+
+# =============================================================================
+# Binaries
+# =============================================================================
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.bmp  binary
+*.webp binary
+*.dll  binary
+*.exe  binary
+*.pdb  binary
+*.zip  binary
+*.7z   binary
+*.rar  binary
+*.msi  binary
+*.msix binary
+*.msixbundle binary
+*.appx binary
+*.ttf  binary
+*.otf  binary
+*.woff binary
+*.woff2 binary
+*.mp4  binary
+*.iso  binary
+*.snk  binary
+*.pfx  binary
+
+# =============================================================================
+# GitHub Linguist
+# =============================================================================
+# Prefer C# for language stats; keep PS1 counted as code
+*.ps1  linguist-detectable=true
+
+# Template / generated assets should not dominate stats
+Assets/** linguist-vendored
+**/bin/** linguist-generated
+**/obj/** linguist-generated
+
+# Docs
+docs/** linguist-documentation
+*.md    linguist-documentation
+
+# =============================================================================
+# Release archives (git archive)
+# =============================================================================
+.github export-ignore
+.gitignore export-ignore
+.gitattributes export-ignore
+.editorconfig export-ignore
+docs/** export-ignore
+**/Tests/** export-ignore
+**/TestResults/** export-ignore

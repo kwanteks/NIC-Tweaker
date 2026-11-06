@@ -1,0 +1,40 @@
+# EditorConfig for NIC-Tweaker (.NET / WinUI / PowerShell)
+# https://editorconfig.org
+
+root = true
+
+[*]
+charset = utf-8
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{cs,xaml,csproj,props,targets,manifest,appxmanifest,pubxml,slnx,sln}]
+end_of_line = crlf
+indent_style = space
+indent_size = 4
+
+[*.{ps1,psm1,psd1,bat,cmd,reg}]
+end_of_line = crlf
+indent_style = space
+indent_size = 4
+
+[*.{json,yml,yaml,md,sh}]
+end_of_line = lf
+indent_style = space
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.{csproj,props,targets,xml,config,resx,manifest,appxmanifest,pubxml,xaml}]
+indent_style = space
+indent_size = 2
+
+# C# formatting aligned with the existing template style
+[*.cs]
+dotnet_sort_system_directives_first = true
+csharp_new_line_before_open_brace = all
+csharp_prefer_braces = true:suggestion
+csharp_style_namespace_declarations = block_scoped:suggestion

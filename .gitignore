@@ -1,0 +1,120 @@
+# =============================================================================
+# NIC-Tweaker — .NET 8 / WinUI 3 / Visual Studio / PowerShell
+# =============================================================================
+
+# --- Build output ---
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Ll]og/
+[Ll]ogs/
+artifacts/
+publish/
+AppPackages/
+BundleArtifacts/
+*.msix
+*.msixbundle
+*.appx
+*.appxbundle
+*.appxupload
+Package.StoreAssociation.xml
+_pkginfo.txt
+
+# --- IDE / editor ---
+.vs/
+.idea/
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+*.DotSettings.user
+.localhistory/
+.ionide/
+
+# Keep shared VS Code / Cursor settings if added later
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+
+# --- NuGet ---
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+*.nupkg
+*.snupkg
+project.lock.json
+project.fragment.lock.json
+*.nuget.props
+*.nuget.targets
+
+# --- Publish profiles (ignore by default; keep project profiles) ---
+*.pubxml
+*.publishproj
+*.[Pp]ublish.xml
+*.azurePubxml
+!**/Properties/PublishProfiles/*.pubxml
+
+# --- Test / coverage ---
+[Tt]est[Rr]esult*/
+TestResults/
+*.coverage
+*.coveragexml
+coverage/
+coverage*.json
+coverage*.xml
+coverage*.info
+BenchmarkDotNet.Artifacts/
+
+# --- Logs / temp / OS ---
+*.log
+*.tmp
+*.tmp_proj
+*_wpftmp.csproj
+*.bak
+*.cache
+!*.cache/
+Thumbs.db
+Desktop.ini
+.DS_Store
+*~
+~$*
+
+# --- Secrets / local config ---
+.env
+.env.*
+!.env.example
+*.pfx
+*.snk
+*.key
+secrets.json
+**/appsettings.Development.json
+*.publishsettings
+
+# --- MSBuild / generated noise ---
+*.binlog
+*.pdb
+*.ilk
+*.obj
+*.iobj
+*.ipdb
+*.pch
+*.pgc
+*.pgd
+*.meta
+Generated\ Files/
+*_i.c
+*_p.c
+*_h.h
