@@ -26,6 +26,12 @@ namespace Kwanteks__NIC_Tweaker
         public MainWindow()
         {
             InitializeComponent();
+
+            var iconPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Kwanteks.ico");
+            if (File.Exists(iconPath))
+            {
+                AppWindow.SetIcon(iconPath);
+            }
         }
     }
 }
