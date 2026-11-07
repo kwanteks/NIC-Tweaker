@@ -1,0 +1,378 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Kwanteks.NicTweaker.Views.MainShell"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:Kwanteks.NicTweaker.Controls"
+    xmlns:vm="using:Kwanteks.NicTweaker.ViewModels"
+>
+
+    <Grid x:Name="RootGrid" Background="{ThemeResource TweakerWindowBgBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Padding="12,8,12,6" Spacing="6">
+            <!-- Title bar: logo + app name (drag region) -->
+            <Grid x:Name="AppTitleBar" Height="36" Margin="0,0,140,0">
+                <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                    <Ellipse Width="22" Height="22" VerticalAlignment="Center">
+                        <Ellipse.Fill>
+                            <ImageBrush Stretch="UniformToFill">
+                                <ImageBrush.ImageSource>
+                                    <BitmapImage UriSource="ms-appx:///Assets/Kwanteks.ico" />
+                                </ImageBrush.ImageSource>
+                            </ImageBrush>
+                        </Ellipse.Fill>
+                    </Ellipse>
+                    <TextBlock Text="Kwanteks' NIC Tweaker"
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               FontFamily="Segoe UI Variable"
+                               VerticalAlignment="Center" />
+                </StackPanel>
+            </Grid>
+
+            <Grid Visibility="{x:Bind ViewModel.ShowFirstLaunchWarning, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" FontSize="11" Foreground="{ThemeResource TweakerMutedTextBrush}"
+                           Text="Admin: edits HKLM / adapter settings. Backup first." TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                <HyperlinkButton Grid.Column="1" Content="Dismiss" FontSize="11" Padding="6,0" Click="DismissWarning_Click" />
+            </Grid>
+            <TextBlock FontSize="11" Foreground="{ThemeResource TweakerMutedTextBrush}"
+                       Text="{x:Bind ViewModel.FallbackStoragePath, Mode=OneWay}"
+                       Visibility="{x:Bind ViewModel.UsingFallbackStorage, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
+
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Text="Adapter:" Style="{StaticResource TweakerLabelStyle}" VerticalAlignment="Center" />
+                <ComboBox Width="310" MinHeight="28" FontSize="12"
+                          Style="{StaticResource TweakerComboBoxStyle}"
+                          ItemsSource="{x:Bind ViewModel.Adapters}"
+                          SelectedItem="{x:Bind ViewModel.SelectedAdapter, Mode=TwoWay}"
+                          DisplayMemberPath="InterfaceDescription"
+                          AutomationProperties.Name="Network adapter" />
+                <Button Content="Open" Style="{StaticResource TweakerButtonStyle}" Command="{x:Bind ViewModel.OpenRegistryCommand}" ToolTipService.ToolTip="Open adapter key in Regedit" />
+                <Button Content="Apply All" Style="{StaticResource TweakerButtonStyle}" Command="{x:Bind ViewModel.ApplyAllCommand}" />
+                <Button Content="Restart Adapter" Style="{StaticResource TweakerButtonStyle}" Command="{x:Bind ViewModel.RestartAdapterCommand}" />
+                <Button Content="Refresh" Style="{StaticResource TweakerButtonStyle}" Command="{x:Bind ViewModel.RefreshCommand}" />
+                <Button Content="Opacity On/Off" Style="{StaticResource TweakerButtonStyle}" Command="{x:Bind ViewModel.ToggleOpacityCommand}" Click="Opacity_Click" />
+                <Button Content="Enable RSS Support" Style="{StaticResource TweakerButtonStyle}"
+                        Command="{x:Bind ViewModel.EnableRssSupportCommand}"
+                        IsEnabled="{x:Bind ViewModel.RssSupportNeeded, Mode=OneWay}" />
+            </StackPanel>
+
+            <!-- Auto columns so Copy sits flush after the path (no * stretch) -->
+            <Grid HorizontalAlignment="Left" ColumnSpacing="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="Registry:" Style="{StaticResource TweakerLabelStyle}" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1"
+                           Text="{x:Bind ViewModel.RegistryPath, Mode=OneWay}"
+                           Style="{StaticResource TweakerMutedLabelStyle}"
+                           VerticalAlignment="Center"
+                           HorizontalAlignment="Left"
+                           TextTrimming="CharacterEllipsis" />
+                <Button Grid.Column="2"
+                        Content="Copy"
+                        Style="{StaticResource TweakerButtonStyle}"
+                        Command="{x:Bind ViewModel.CopyRegistryPathCommand}"
+                        Margin="0"
+                        HorizontalAlignment="Left" />
+            </Grid>
+
+            <Grid ColumnSpacing="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="Presets:" Style="{StaticResource TweakerLabelStyle}" VerticalAlignment="Center" />
+                    <Button Content="Intel" Style="{StaticResource TweakerButtonStyle}" Command="{x:Bind ViewModel.LoadPresetCommand}" CommandParameter="Intel" />
+                    <Button Content="Realtek" Style="{StaticResource TweakerButtonStyle}" Command="{x:Bind ViewModel.LoadPresetCommand}" CommandParameter="Realtek" />
+                    <TextBlock FontSize="11" FontStyle="Italic" Foreground="{ThemeResource TweakerMutedTextBrush}" VerticalAlignment="Center"
+                               Text="This program is a remake of st1icky's network adapter tweaker. Presets fill the UI only until Apply." />
+                </StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
+                    <Button Content="Backup" Style="{StaticResource TweakerButtonStyle}">
+                        <Button.Flyout>
+                            <MenuFlyout>
+                                <MenuFlyoutItem Text="Create restore point" Command="{x:Bind ViewModel.CreateRestorePointCommand}" />
+                                <MenuFlyoutItem Text="Backup now" Command="{x:Bind ViewModel.BackupNowCommand}" />
+                                <MenuFlyoutItem Text="Restore snapshot..." Click="RestoreSnapshot_Click" />
+                                <MenuFlyoutItem Text="Revert last change" Command="{x:Bind ViewModel.RevertLastCommand}" />
+                                <MenuFlyoutSeparator />
+                                <MenuFlyoutItem Text="Reset section to defaults..." Click="ResetSection_Click" />
+                                <MenuFlyoutSeparator />
+                                <MenuFlyoutItem Text="Export..." Click="Export_Click" />
+                                <MenuFlyoutItem Text="Import..." Click="Import_Click" />
+                            </MenuFlyout>
+                        </Button.Flyout>
+                    </Button>
+                    <ComboBox Width="100" MinHeight="28" FontSize="12"
+                              Style="{StaticResource TweakerComboBoxStyle}"
+                              ItemsSource="{x:Bind ViewModel.ThemeChoices}"
+                              SelectedItem="{x:Bind ViewModel.ThemeChoice, Mode=TwoWay}"
+                              ToolTipService.ToolTip="Theme"
+                              AutomationProperties.Name="Theme" />
+                </StackPanel>
+            </Grid>
+
+            <TextBlock FontSize="11" Foreground="#E6A23C" Text="{x:Bind ViewModel.RestartBanner, Mode=OneWay}"
+                       Visibility="{x:Bind ViewModel.HasRestartBanner, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="12,0,12,8"
+                      IsEnabled="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource NotBoolConverter}}">
+            <Grid x:Name="ColumnsHost" HorizontalAlignment="Left" SizeChanged="ColumnsHost_SizeChanged">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="370" />
+                    <ColumnDefinition Width="440" />
+                    <ColumnDefinition Width="440" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <StackPanel x:Name="Col1" Grid.Column="0" Grid.Row="0" Spacing="2" Margin="0,0,10,0">
+                    <controls:GroupBox Header="RSS Settings">
+                        <controls:GroupBox.ContentHost>
+                            <StackPanel>
+                                <ItemsControl ItemsSource="{x:Bind ViewModel.RssSection.Items}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:TweakItemViewModel">
+                                            <controls:TweakRow Item="{x:Bind}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                    <Button Content="Apply" Style="{StaticResource TweakerButtonStyle}" Command="{x:Bind ViewModel.RssSection.ApplyCommand}" />
+                                    <Button Content="Unlock RSSQueues" Style="{StaticResource TweakerButtonStyle}" Command="{x:Bind ViewModel.UnlockRssQueuesCommand}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </controls:GroupBox.ContentHost>
+                    </controls:GroupBox>
+
+                    <controls:GroupBox Header="RSS Global">
+                        <controls:GroupBox.ContentHost>
+                            <StackPanel>
+                                <ItemsControl ItemsSource="{x:Bind ViewModel.RssGlobalSection.Items}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:TweakItemViewModel">
+                                            <controls:TweakRow Item="{x:Bind}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <Button Content="Apply" Style="{StaticResource TweakerButtonStyle}" Margin="0,6,0,0" Command="{x:Bind ViewModel.RssGlobalSection.ApplyCommand}" />
+                            </StackPanel>
+                        </controls:GroupBox.ContentHost>
+                    </controls:GroupBox>
+
+                    <controls:GroupBox Header="Interrupt Settings">
+                        <controls:GroupBox.ContentHost>
+                            <StackPanel>
+                                <ItemsControl ItemsSource="{x:Bind ViewModel.InterruptSection.Items}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:TweakItemViewModel">
+                                            <controls:TweakRow Item="{x:Bind}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <ItemsRepeater ItemsSource="{x:Bind ViewModel.CpuAffinity}" Margin="0,6,0,0">
+                                    <ItemsRepeater.Layout>
+                                        <UniformGridLayout MaximumRowsOrColumns="2" Orientation="Horizontal" MinItemWidth="100" MinRowSpacing="2" MinColumnSpacing="8" />
+                                    </ItemsRepeater.Layout>
+                                    <ItemsRepeater.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:CpuAffinityItem">
+                                            <CheckBox Content="{x:Bind Label}" IsChecked="{x:Bind IsChecked, Mode=TwoWay}" MinHeight="24" FontSize="12" />
+                                        </DataTemplate>
+                                    </ItemsRepeater.ItemTemplate>
+                                </ItemsRepeater>
+                                <TextBlock Text="{x:Bind ViewModel.AffinityHex, Mode=OneWay}"
+                                           Foreground="{ThemeResource TweakerAccentBrush}"
+                                           FontSize="12" FontFamily="Consolas" Margin="0,6,0,4" />
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="Apply" Style="{StaticResource TweakerButtonStyle}" Command="{x:Bind ViewModel.ApplyInterruptCommand}" />
+                                    <Button Content="Clear" Style="{StaticResource TweakerButtonStyle}" Command="{x:Bind ViewModel.ClearAffinityCommand}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </controls:GroupBox.ContentHost>
+                    </controls:GroupBox>
+
+                    <controls:GroupBox Header="PowerSaving Settings">
+                        <controls:GroupBox.ContentHost>
+                            <StackPanel>
+                                <ItemsControl ItemsSource="{x:Bind ViewModel.PowerSection.Items}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:TweakItemViewModel">
+                                            <controls:TweakRow Item="{x:Bind}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <Button Content="Apply" Style="{StaticResource TweakerButtonStyle}" Margin="0,6,0,0" Command="{x:Bind ViewModel.PowerSection.ApplyCommand}" />
+                            </StackPanel>
+                        </controls:GroupBox.ContentHost>
+                    </controls:GroupBox>
+                </StackPanel>
+
+                <StackPanel x:Name="Col2" Grid.Column="1" Grid.Row="0" Spacing="2" Margin="0,0,10,0">
+                    <controls:GroupBox Header="Global Settings">
+                        <controls:GroupBox.ContentHost>
+                            <StackPanel>
+                                <ItemsControl ItemsSource="{x:Bind ViewModel.GlobalSection.Items}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:TweakItemViewModel">
+                                            <controls:TweakRow Item="{x:Bind}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <StackPanel Margin="0,6,0,0" Spacing="2">
+                                    <CheckBox Content="Disable NetBT service" IsChecked="{x:Bind ViewModel.DisableNetBt, Mode=TwoWay}" MinHeight="24" FontSize="12" />
+                                    <CheckBox Content="Disable NetBIOS service" IsChecked="{x:Bind ViewModel.DisableNetBios, Mode=TwoWay}" MinHeight="24" FontSize="12" />
+                                    <CheckBox Content="Disable LMHOSTS lookup" IsChecked="{x:Bind ViewModel.DisableLmhosts, Mode=TwoWay}" MinHeight="24" FontSize="12" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                    <Button Content="Apply Global" Style="{StaticResource TweakerButtonStyle}" Command="{x:Bind ViewModel.GlobalSection.ApplyCommand}" />
+                                    <Button Content="Apply NetBT / TCP" Style="{StaticResource TweakerButtonStyle}" Command="{x:Bind ViewModel.ApplyNetBtTcpCommand}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </controls:GroupBox.ContentHost>
+                    </controls:GroupBox>
+
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="16" Margin="0,4,0,8">
+                        <CheckBox Content="IPv6" IsChecked="{x:Bind ViewModel.Ipv6Selected, Mode=TwoWay}" MinHeight="24" FontSize="12" />
+                        <CheckBox Content="IPv4" IsChecked="{x:Bind ViewModel.Ipv4Selected, Mode=TwoWay}" MinHeight="24" FontSize="12" />
+                    </StackPanel>
+
+                    <controls:GroupBox Header="Interface Settings">
+                        <controls:GroupBox.ContentHost>
+                            <StackPanel>
+                                <ItemsControl ItemsSource="{x:Bind ViewModel.InterfaceSection.Items}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:TweakItemViewModel">
+                                            <controls:TweakRow Item="{x:Bind}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <Button Content="Apply" Style="{StaticResource TweakerButtonStyle}" Margin="0,6,0,0" Command="{x:Bind ViewModel.InterfaceSection.ApplyCommand}" />
+                            </StackPanel>
+                        </controls:GroupBox.ContentHost>
+                    </controls:GroupBox>
+                </StackPanel>
+
+                <StackPanel x:Name="Col3" Grid.Column="2" Grid.Row="0" Spacing="2">
+                    <controls:GroupBox Header="Adapter Features">
+                        <controls:GroupBox.ContentHost>
+                            <StackPanel>
+                                <ItemsControl ItemsSource="{x:Bind ViewModel.AdapterFeaturesSection.Items}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:TweakItemViewModel">
+                                            <controls:TweakRow Item="{x:Bind}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <Button Content="Apply" Style="{StaticResource TweakerButtonStyle}" Margin="0,6,0,0" Command="{x:Bind ViewModel.AdapterFeaturesSection.ApplyCommand}" />
+                            </StackPanel>
+                        </controls:GroupBox.ContentHost>
+                    </controls:GroupBox>
+
+                    <controls:GroupBox Header="Buffers / Interrupts / Coalescing">
+                        <controls:GroupBox.ContentHost>
+                            <StackPanel>
+                                <ItemsControl ItemsSource="{x:Bind ViewModel.BuffersSection.Items}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:TweakItemViewModel">
+                                            <controls:TweakRow Item="{x:Bind}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <Button Content="Apply" Style="{StaticResource TweakerButtonStyle}" Margin="0,6,0,0" Command="{x:Bind ViewModel.BuffersSection.ApplyCommand}" />
+                            </StackPanel>
+                        </controls:GroupBox.ContentHost>
+                    </controls:GroupBox>
+
+                    <controls:GroupBox Header="Offload Settings">
+                        <controls:GroupBox.ContentHost>
+                            <StackPanel>
+                                <ItemsControl ItemsSource="{x:Bind ViewModel.OffloadSection.Items}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:TweakItemViewModel">
+                                            <controls:TweakRow Item="{x:Bind}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <Button Content="Apply" Style="{StaticResource TweakerButtonStyle}" Margin="0,6,0,0" Command="{x:Bind ViewModel.OffloadSection.ApplyCommand}" />
+                            </StackPanel>
+                        </controls:GroupBox.ContentHost>
+                    </controls:GroupBox>
+
+                    <controls:GroupBox Header="Tweaks">
+                        <controls:GroupBox.ContentHost>
+                            <StackPanel>
+                                <ItemsControl ItemsSource="{x:Bind ViewModel.AfdSection.Items}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:TweakItemViewModel">
+                                            <controls:TweakRow Item="{x:Bind}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <Button Content="Apply" Style="{StaticResource TweakerButtonStyle}" Margin="0,6,0,0" Command="{x:Bind ViewModel.AfdSection.ApplyCommand}" />
+                            </StackPanel>
+                        </controls:GroupBox.ContentHost>
+                    </controls:GroupBox>
+                </StackPanel>
+            </Grid>
+        </ScrollViewer>
+
+        <Border Grid.Row="2" Style="{StaticResource TweakerStatusBarStyle}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="{x:Bind ViewModel.StatusAdapterText, Mode=OneWay}" Style="{StaticResource TweakerLabelStyle}" VerticalAlignment="Center" />
+                <ProgressRing Grid.Column="1" Width="16" Height="16" Margin="8,0"
+                              IsActive="{x:Bind ViewModel.IsBusy, Mode=OneWay}"
+                              Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
+                <TextBlock Grid.Column="2" Text="{x:Bind ViewModel.StatusMessage, Mode=OneWay}" Style="{StaticResource TweakerMutedLabelStyle}" VerticalAlignment="Center" Margin="0,0,12,0" MaxWidth="420" TextTrimming="CharacterEllipsis" />
+                <HyperlinkButton Grid.Column="3" Content="Log" Click="ToggleLog_Click" FontSize="12" Padding="4,0" VerticalAlignment="Center" />
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="3" MaxHeight="160"
+                Background="{ThemeResource TweakerWindowBgBrush}"
+                BorderBrush="{ThemeResource TweakerBorderBrush}"
+                BorderThickness="0,1,0,0"
+                Visibility="{x:Bind ViewModel.LogExpanded, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+            <ListView ItemsSource="{x:Bind ViewModel.LogLines}" FontSize="11" FontFamily="Consolas" SelectionMode="None" Padding="8,4" />
+        </Border>
+
+        <!-- Full-window busy overlay (adapter switch / apply / refresh) -->
+        <Grid Grid.Row="0" Grid.RowSpan="4"
+              Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"
+              Background="#99000000"
+              Canvas.ZIndex="100">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
+                <ProgressRing Width="48" Height="48" IsActive="{x:Bind ViewModel.IsBusy, Mode=OneWay}" />
+                <TextBlock Text="{x:Bind ViewModel.BusyText, Mode=OneWay}"
+                           FontSize="13"
+                           HorizontalAlignment="Center"
+                           Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</UserControl>
+

@@ -1,0 +1,10 @@
+{
+  "name": "Intel",
+  "description": "Placeholder Intel preset — edit this file; values only fill the UI until Apply.",
+  "values": {
+    "rss.status": "Enable",
+    "rss.profile": "NUMAStatic",
+    "adv.intmod": "0 - Disabled",
+    "adv.flow": "0 - Disabled"
+  }
+}

@@ -1,16 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Application
-    x:Class="Kwanteks__NIC_Tweaker.App"
+    x:Class="Kwanteks.NicTweaker.App"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:Kwanteks__NIC_Tweaker">
+    xmlns:conv="using:Kwanteks.NicTweaker.Converters">
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
-                <!-- Other merged dictionaries here -->
+                <ResourceDictionary Source="ms-appx:///Themes/AppStyles.xaml" />
             </ResourceDictionary.MergedDictionaries>
-            <!-- Other app resources here -->
+            <conv:NullToBoolConverter x:Key="NullToBoolConverter" />
+            <conv:NotBoolConverter x:Key="NotBoolConverter" />
+            <conv:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+            <Color x:Key="SystemAccentColor">#A78BFA</Color>
+            <Color x:Key="SystemAccentColorLight1">#C4B5FD</Color>
+            <Color x:Key="SystemAccentColorLight2">#DDD6FE</Color>
+            <Color x:Key="SystemAccentColorDark1">#7C3AED</Color>
+            <Color x:Key="SystemAccentColorDark2">#6D28D9</Color>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

@@ -1,13 +1,11 @@
 <Solution>
   <Configurations>
-    <Platform Name="ARM64" />
+    <BuildType Name="Debug" />
+    <BuildType Name="Release" />
     <Platform Name="x64" />
-    <Platform Name="x86" />
   </Configurations>
-  <Project Path="Kwanteks' NIC Tweaker.csproj">
-    <Platform Solution="*|ARM64" Project="ARM64" />
-    <Platform Solution="*|x64" Project="x64" />
-    <Platform Solution="*|x86" Project="x86" />
-    <Deploy />
+  <Project Path="Kwanteks' NIC Tweaker.csproj" Id="a1b2c3d4-e5f6-7890-abcd-ef1234567890">
+    <Build Solution="Debug|x64" Project="Debug|x64" />
+    <Build Solution="Release|x64" Project="Release|x64" />
   </Project>
 </Solution>

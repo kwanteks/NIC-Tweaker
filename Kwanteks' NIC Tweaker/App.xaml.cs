@@ -1,50 +1,47 @@
-﻿using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Controls.Primitives;
-using Microsoft.UI.Xaml.Data;
-using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Navigation;
-using Microsoft.UI.Xaml.Shapes;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices.WindowsRuntime;
-using Windows.ApplicationModel;
-using Windows.ApplicationModel.Activation;
-using Windows.Foundation;
-using Windows.Foundation.Collections;
+﻿using Kwanteks.NicTweaker.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI.Dispatching;
+using Microsoft.UI.Xaml;
 
-// To learn more about WinUI, the WinUI project structure,
-// and more about our project templates, see: http://aka.ms/winui-project-info.
+namespace Kwanteks.NicTweaker;
 
-namespace Kwanteks__NIC_Tweaker
+public partial class App : Application
 {
-    /// <summary>
-    /// Provides application-specific behavior to supplement the default Application class.
-    /// </summary>
-    public partial class App : Application
+    private Window? _window;
+    public static ServiceProvider Services { get; private set; } = null!;
+    public static DispatcherQueue? CurrentDispatcherQueue { get; private set; }
+    public static Window? MainAppWindow => ((App)Current)._window;
+
+    public App()
     {
-        private Window? _window;
+        InitializeComponent();
+        Services = AppServices.Build();
+    }
 
-        /// <summary>
-        /// Initializes the singleton application object.  This is the first line of authored code
-        /// executed, and as such is the logical equivalent of main() or WinMain().
-        /// </summary>
-        public App()
-        {
-            InitializeComponent();
-        }
+    protected override void OnLaunched(LaunchActivatedEventArgs args)
+    {
+        CurrentDispatcherQueue = DispatcherQueue.GetForCurrentThread();
+        _window = new MainWindow();
+        _window.Activate();
 
-        /// <summary>
-        /// Invoked when the application is launched.
-        /// </summary>
-        /// <param name="args">Details about the launch request and process.</param>
-        protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
+        var storage = Services.GetRequiredService<IStorageService>();
+        ApplyTheme(storage.LoadSettings().Theme);
+    }
+
+    public static void ApplyTheme(string theme)
+    {
+        if (MainAppWindow?.Content is not FrameworkElement fe) return;
+        fe.RequestedTheme = theme switch
         {
-            _window = new MainWindow();
-            _window.Activate();
-        }
+            "Light" => ElementTheme.Light,
+            "Dark" => ElementTheme.Dark,
+            _ => ElementTheme.Default
+        };
+    }
+
+    public static void SetWindowOpacity(bool reduced)
+    {
+        if (MainAppWindow?.Content is UIElement element)
+            element.Opacity = reduced ? 0.90 : 1.0;
     }
 }

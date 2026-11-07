@@ -1,0 +1,10 @@
+{
+  "name": "Realtek",
+  "description": "Placeholder Realtek preset — edit this file; values only fill the UI until Apply.",
+  "values": {
+    "rss.status": "Enable",
+    "rss.profile": "Closest",
+    "adv.intmod": "0 - Disabled",
+    "adv.flow": "0 - Disabled"
+  }
+}

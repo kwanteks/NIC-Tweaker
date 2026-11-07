@@ -1,10 +1,8 @@
 {
   "profiles": {
-    "Kwanteks' NIC Tweaker (Package)": {
-      "commandName": "MsixPackage"
-    },
-    "Kwanteks' NIC Tweaker (Unpackaged)": {
-      "commandName": "Project"
+    "NetworkTweaker (Unpackaged)": {
+      "commandName": "Project",
+      "nativeDebugging": false
     }
   }
 }
