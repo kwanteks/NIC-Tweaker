@@ -200,7 +200,7 @@
                                     </ItemsRepeater.ItemTemplate>
                                 </ItemsRepeater>
                                 <TextBlock Text="{x:Bind ViewModel.AffinityHex, Mode=OneWay}"
-                                           Foreground="{ThemeResource TweakerAccentBrush}"
+                                           Foreground="White"
                                            FontSize="12" FontFamily="Consolas" Margin="0,6,0,4" />
                                 <StackPanel Orientation="Horizontal">
                                     <Button Content="Apply" Style="{StaticResource TweakerButtonStyle}" Command="{x:Bind ViewModel.ApplyInterruptCommand}" />
