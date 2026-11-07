@@ -131,7 +131,8 @@
                        Visibility="{x:Bind ViewModel.HasRestartBanner, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
         </StackPanel>
 
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="12,0,12,8"
+        <ScrollViewer x:Name="MainScroll"
+                      Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="12,0,12,8"
                       IsEnabled="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource NotBoolConverter}}">
             <Grid x:Name="ColumnsHost" HorizontalAlignment="Left" SizeChanged="ColumnsHost_SizeChanged">
                 <Grid.ColumnDefinitions>

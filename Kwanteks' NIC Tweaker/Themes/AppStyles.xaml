@@ -37,6 +37,7 @@
         <Setter Property="FontSize" Value="{StaticResource TweakerFontSize}" />
         <Setter Property="Padding" Value="{StaticResource TweakerControlPadding}" />
         <Setter Property="MinWidth" Value="160" />
+        <Setter Property="MaxDropDownHeight" Value="240" />
         <Setter Property="HorizontalAlignment" Value="Left" />
         <Setter Property="Background" Value="{ThemeResource TweakerInputBgBrush}" />
         <Setter Property="BorderBrush" Value="{ThemeResource TweakerBorderBrush}" />

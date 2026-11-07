@@ -2,6 +2,8 @@ using Kwanteks.NicTweaker.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
 using Windows.Storage.Pickers;
 using WinRT.Interop;
 
@@ -15,8 +17,12 @@ public sealed partial class MainShell : UserControl
     {
         ViewModel = App.Services.GetRequiredService<MainViewModel>();
         InitializeComponent();
+        // ScrollViewer eats ComboBox light-dismiss; close open dropdowns on outside press / scroll.
+        AddHandler(PointerPressedEvent, new PointerEventHandler(RootGrid_PointerPressed), handledEventsToo: true);
         Loaded += async (_, _) =>
         {
+            MainScroll.ViewChanged += (_, _) => CloseOpenComboBoxes(this);
+
             if (App.MainAppWindow is MainWindow window)
                 window.SetTitleBar(AppTitleBar);
 
@@ -24,6 +30,30 @@ public sealed partial class MainShell : UserControl
             App.SetWindowOpacity(ViewModel.OpacityReduced);
             ApplyColumnLayout(App.MainAppWindow?.Bounds.Width ?? ActualWidth);
         };
+    }
+
+    private void RootGrid_PointerPressed(object sender, PointerRoutedEventArgs e)
+    {
+        if (e.OriginalSource is not DependencyObject src) return;
+        for (var d = src; d is not null; d = VisualTreeHelper.GetParent(d))
+        {
+            if (d is ComboBox { IsDropDownOpen: true })
+                return;
+        }
+
+        CloseOpenComboBoxes(this);
+    }
+
+    private static void CloseOpenComboBoxes(DependencyObject root)
+    {
+        var n = VisualTreeHelper.GetChildrenCount(root);
+        for (var i = 0; i < n; i++)
+        {
+            var child = VisualTreeHelper.GetChild(root, i);
+            if (child is ComboBox { IsDropDownOpen: true } box)
+                box.IsDropDownOpen = false;
+            CloseOpenComboBoxes(child);
+        }
     }
 
     private void ColumnsHost_SizeChanged(object sender, SizeChangedEventArgs e)

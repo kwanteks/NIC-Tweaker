@@ -22,7 +22,8 @@ public partial class TweakItemViewModel : ObservableObject
         _ => ""
     };
 
-    public bool AllowFreeText => Definition.AllowFreeText || Definition.Options.Count == 0 || IsNotSet;
+    // Editable only when the catalog says so (or no fixed options). "Not set" is already in the list.
+    public bool AllowFreeText => Definition.AllowFreeText || Definition.Options.Count == 0;
     public Visibility UseCombo => Visibility.Visible;
     public double EditorOpacity => IsNotAvailable ? 0.45 : 1.0;
     public bool IsEditorEnabled => !Definition.IsReadOnly && !IsNotAvailable;
@@ -41,7 +42,6 @@ public partial class TweakItemViewModel : ObservableObject
     }
 
     partial void OnIsNotAvailableChanged(bool value) => OnPropertyChanged(nameof(IsEditorEnabled));
-    partial void OnIsNotSetChanged(bool value) => OnPropertyChanged(nameof(AllowFreeText));
 
     public void LoadFrom(TweakCurrentValue value)
     {
