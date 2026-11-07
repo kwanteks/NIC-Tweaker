@@ -56,7 +56,7 @@ public sealed class TweakDefinition
     public TweakBackend Backend { get; init; } = TweakBackend.Registry;
     public IReadOnlyList<TweakOption> Options { get; init; } = Array.Empty<TweakOption>();
     public bool SupportsDelete { get; init; }
-    public string DefaultDisplay { get; init; } = "Not set (driver default)";
+    public string DefaultDisplay { get; init; } = "Not set (default)";
     public string Description { get; init; } = "";
     public RiskLevel RiskLevel { get; init; } = RiskLevel.Medium;
     public RestartRequirement RequiresRestart { get; init; } = RestartRequirement.None;

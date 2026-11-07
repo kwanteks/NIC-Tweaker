@@ -5,15 +5,16 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     x:Name="Root">
 
-    <Grid Margin="0,0,0,10">
+    <Grid Margin="0,0,0,10" HorizontalAlignment="Stretch">
         <Border
             Margin="0,8,0,0"
             BorderBrush="{ThemeResource TweakerBorderBrush}"
             BorderThickness="1"
             CornerRadius="3"
             Background="Transparent"
-            Padding="8,14,8,8">
-            <ContentPresenter Content="{x:Bind ContentHost, Mode=OneWay}" />
+            Padding="8,14,8,8"
+            HorizontalAlignment="Stretch">
+            <ContentPresenter Content="{x:Bind ContentHost, Mode=OneWay}" HorizontalAlignment="Stretch" />
         </Border>
         <Border
             HorizontalAlignment="Left"

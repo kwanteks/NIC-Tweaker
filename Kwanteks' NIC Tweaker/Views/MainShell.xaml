@@ -135,9 +135,9 @@
                       IsEnabled="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource NotBoolConverter}}">
             <Grid x:Name="ColumnsHost" HorizontalAlignment="Left" SizeChanged="ColumnsHost_SizeChanged">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="370" />
-                    <ColumnDefinition Width="440" />
-                    <ColumnDefinition Width="440" />
+                    <ColumnDefinition Width="400" />
+                    <ColumnDefinition Width="460" />
+                    <ColumnDefinition Width="460" />
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
