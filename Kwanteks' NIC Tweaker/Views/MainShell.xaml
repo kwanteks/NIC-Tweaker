@@ -7,7 +7,8 @@
     xmlns:vm="using:Kwanteks.NicTweaker.ViewModels"
 >
 
-    <Grid x:Name="RootGrid" Background="{ThemeResource TweakerWindowBgBrush}">
+    <Grid x:Name="RootGrid" Background="{ThemeResource TweakerWindowBgBrush}"
+          AllowDrop="True" DragOver="RootGrid_DragOver" Drop="RootGrid_Drop" CanDrag="False">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -63,16 +64,22 @@
                 <Button Content="Refresh" Style="{StaticResource TweakerButtonStyle}" Command="{x:Bind ViewModel.RefreshCommand}" />
                 <Button Content="Create Restore Point" Style="{StaticResource TweakerButtonStyle}"
                         Command="{x:Bind ViewModel.RestorePoint.CreateRestorePointCommand}" />
+                <Button Content="Export Config" Style="{StaticResource TweakerButtonStyle}">
+                    <Button.Flyout>
+                        <MenuFlyout>
+                            <MenuFlyoutItem Text="Export Config…" Command="{x:Bind ViewModel.ConfigTransfer.ExportConfigCommand}" />
+                            <MenuFlyoutItem Text="Quick export to Desktop" Command="{x:Bind ViewModel.ConfigTransfer.QuickExportDesktopCommand}" />
+                            <MenuFlyoutSeparator />
+                            <MenuFlyoutItem Text="Export Windows defaults…" Command="{x:Bind ViewModel.ConfigTransfer.ExportWindowsDefaultsCommand}" />
+                        </MenuFlyout>
+                    </Button.Flyout>
+                </Button>
+                <Button Content="Import Config" Style="{StaticResource TweakerButtonStyle}"
+                        Command="{x:Bind ViewModel.ConfigTransfer.ImportConfigCommand}" />
                 <Button Content="Opacity On/Off" Style="{StaticResource TweakerButtonStyle}" Command="{x:Bind ViewModel.ToggleOpacityCommand}" Click="Opacity_Click" />
                 <Button Content="Enable RSS Support" Style="{StaticResource TweakerButtonStyle}"
                         Command="{x:Bind ViewModel.EnableRssSupportCommand}"
                         IsEnabled="{x:Bind ViewModel.RssSupportNeeded, Mode=OneWay}" />
-                <CheckBox Content="Create restore point before applying"
-                          MinHeight="24"
-                          FontSize="12"
-                          CornerRadius="4"
-                          IsChecked="{x:Bind ViewModel.RestorePoint.CreateRestorePointBeforeApply, Mode=TwoWay}"
-                          VerticalAlignment="Center" />
             </StackPanel>
 
             <InfoBar x:Name="RestoreInfoBar"
@@ -89,6 +96,24 @@
                             Visibility="{x:Bind ViewModel.RestorePoint.ShowOpenSystemRestore, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
                 </InfoBar.ActionButton>
             </InfoBar>
+            <InfoBar IsOpen="{x:Bind ViewModel.ConfigTransfer.InfoBarOpen, Mode=TwoWay}"
+                     Title="{x:Bind ViewModel.ConfigTransfer.InfoBarTitle, Mode=OneWay}"
+                     Message="{x:Bind ViewModel.ConfigTransfer.InfoBarMessage, Mode=OneWay}"
+                     Severity="{x:Bind ViewModel.ConfigTransfer.InfoBarSeverity, Mode=OneWay}"
+                     IsClosable="True"
+                     Margin="0,4,0,0">
+                <InfoBar.ActionButton>
+                    <Button Content="Show in folder"
+                            Style="{StaticResource TweakerButtonStyle}"
+                            Command="{x:Bind ViewModel.ConfigTransfer.ShowInFolderCommand}"
+                            Visibility="{x:Bind ViewModel.ConfigTransfer.ShowOpenFolder, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
+                </InfoBar.ActionButton>
+            </InfoBar>
+            <Button Content="Restart Adapter (after import)"
+                    Style="{StaticResource TweakerButtonStyle}"
+                    Margin="0,4,0,0"
+                    Command="{x:Bind ViewModel.ConfigTransfer.RestartAdapterFromInfoBarCommand}"
+                    Visibility="{x:Bind ViewModel.ConfigTransfer.ShowRestartAdapter, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
             <Button Content="Enable System Protection"
                     Style="{StaticResource TweakerButtonStyle}"
                     Margin="0,4,0,0"
@@ -98,6 +123,7 @@
             <!-- Auto columns so Copy sits flush after the path (no * stretch) -->
             <Grid HorizontalAlignment="Left" ColumnSpacing="8">
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
@@ -115,6 +141,14 @@
                         Command="{x:Bind ViewModel.CopyRegistryPathCommand}"
                         Margin="0"
                         HorizontalAlignment="Left" />
+                <CheckBox Grid.Column="3"
+                          Content="Create restore point before applying"
+                          MinHeight="24"
+                          FontSize="12"
+                          CornerRadius="4"
+                          Margin="8,0,0,0"
+                          IsChecked="{x:Bind ViewModel.RestorePoint.CreateRestorePointBeforeApply, Mode=TwoWay}"
+                          VerticalAlignment="Center" />
             </Grid>
 
             <Grid ColumnSpacing="8">

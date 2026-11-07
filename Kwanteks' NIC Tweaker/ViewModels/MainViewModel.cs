@@ -16,6 +16,7 @@ public partial class MainViewModel : ObservableObject
     private readonly ITweakEngine _engine;
     private readonly IBackupService _backups;
     private readonly IRestorePointService _restorePoints;
+    private readonly IConfigTransferService _configTransfer;
     private readonly IStorageService _storage;
     private readonly ILoggingService _log;
     private readonly IRegistryService _registry;
@@ -27,6 +28,7 @@ public partial class MainViewModel : ObservableObject
 
     public AppSettings Settings { get; }
     public RestorePointViewModel RestorePoint { get; }
+    public ConfigTransferViewModel ConfigTransfer { get; }
 
     public SectionViewModel RssSection { get; }
     public SectionViewModel RssGlobalSection { get; }
@@ -79,6 +81,7 @@ public partial class MainViewModel : ObservableObject
         ITweakEngine engine,
         IBackupService backups,
         IRestorePointService restorePoints,
+        IConfigTransferService configTransfer,
         IStorageService storage,
         ILoggingService log,
         IRegistryService registry)
@@ -88,6 +91,7 @@ public partial class MainViewModel : ObservableObject
         _engine = engine;
         _backups = backups;
         _restorePoints = restorePoints;
+        _configTransfer = configTransfer;
         _storage = storage;
         _log = log;
         _registry = registry;
@@ -122,6 +126,15 @@ public partial class MainViewModel : ObservableObject
             _restorePoints, _backups, _storage, _log, _registry, Settings,
             () => SelectedAdapter, () => AllSections, Notify, BeginBusy, EndBusy,
             text => BusyText = text);
+
+        ConfigTransfer = new ConfigTransferViewModel(
+            _configTransfer, _restorePoints, _storage, _log, Settings,
+            () => SelectedAdapter, () => AddressFamily, () => AllSections,
+            (netBt, netBios, lm) => { DisableNetBt = netBt; DisableNetBios = netBios; DisableLmhosts = lm; },
+            ApplyAffinityMaskToUi,
+            Notify, BeginBusy, EndBusy,
+            () => RefreshAllAsync(),
+            async () => await RestartAdapterCommand.ExecuteAsync(null));
 
         SectionViewModel Make(string title, IEnumerable<TweakDefinition> defs) =>
             new(title, defs, _engine, () => SelectedAdapter, () => AddressFamily, BeforeApplyAsync, Notify, OnRestart);
@@ -544,6 +557,20 @@ public partial class MainViewModel : ObservableObject
     private void ClearAffinity()
     {
         foreach (var c in CpuAffinity) c.IsChecked = false;
+        RecalcAffinityHex();
+    }
+
+    private void ApplyAffinityMaskToUi(ulong? mask)
+    {
+        if (mask is null)
+        {
+            foreach (var c in CpuAffinity) c.IsChecked = false;
+        }
+        else
+        {
+            foreach (var c in CpuAffinity)
+                c.IsChecked = (mask.Value & (1UL << c.Index)) != 0;
+        }
         RecalcAffinityHex();
     }
 

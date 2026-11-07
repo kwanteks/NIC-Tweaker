@@ -4,6 +4,8 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
+using Windows.ApplicationModel.DataTransfer;
+using Windows.Storage;
 using Windows.Storage.Pickers;
 using WinRT.Interop;
 
@@ -29,7 +31,39 @@ public sealed partial class MainShell : UserControl
             await ViewModel.InitializeAsync();
             App.SetWindowOpacity(ViewModel.OpacityReduced);
             ApplyColumnLayout(App.MainAppWindow?.Bounds.Width ?? ActualWidth);
+
+            // Wait for first adapter load so import preview has live values.
+            for (var i = 0; i < 80 && ViewModel.IsBusy; i++)
+                await Task.Delay(50);
+
+            var pending = App.TakePendingImportPath();
+            if (!string.IsNullOrWhiteSpace(pending) && File.Exists(pending))
+                await ViewModel.ConfigTransfer.ImportFromPathAsync(pending);
         };
+    }
+
+    private void RootGrid_DragOver(object sender, DragEventArgs e)
+    {
+        e.AcceptedOperation = DataPackageOperation.Copy;
+        e.DragUIOverride.Caption = "Import config";
+        e.DragUIOverride.IsCaptionVisible = true;
+        e.DragUIOverride.IsGlyphVisible = true;
+    }
+
+    private async void RootGrid_Drop(object sender, DragEventArgs e)
+    {
+        if (!e.DataView.Contains(StandardDataFormats.StorageItems)) return;
+        var items = await e.DataView.GetStorageItemsAsync();
+        var file = items.OfType<StorageFile>().FirstOrDefault(f =>
+            f.FileType.Equals(".nttweak", StringComparison.OrdinalIgnoreCase) ||
+            f.FileType.Equals(".json", StringComparison.OrdinalIgnoreCase));
+        if (file is null)
+        {
+            ViewModel.StatusMessage = "Drop a .nttweak or .json config file.";
+            ViewModel.StatusIsError = true;
+            return;
+        }
+        await ViewModel.ConfigTransfer.ImportFromPathAsync(file.Path);
     }
 
     private void RootGrid_PointerPressed(object sender, PointerRoutedEventArgs e)

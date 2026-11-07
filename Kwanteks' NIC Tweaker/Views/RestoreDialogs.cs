@@ -14,13 +14,16 @@ public sealed class RestoreWarningDialogResult
 
 public static class RestoreDialogs
 {
-    private const string WarningBody =
+    public const string WarningBody =
         "Changing network adapter settings can cause connection loss, instability, or in rare cases leave your network adapter unusable.\n\n" +
         "Before creating a restore point and applying any tweaks:\n" +
         "• Download the latest driver for your network adapter from the manufacturer's website (Intel, Realtek, Killer, Qualcomm, MediaTek, etc.) and save it somewhere you can reach offline, such as a USB drive or another PC. If your adapter stops working you will not be able to download it afterwards.\n" +
         "• Know how to reinstall that driver manually from Device Manager.\n" +
         "• A restore point may not be able to repair every problem, especially driver or firmware level damage.\n\n" +
         "You are responsible for your own network adapter and your system. This tool is provided as is, without warranty of any kind. The author and contributors are not liable for any damage, data loss, loss of connectivity, or hardware or driver malfunction resulting from its use.";
+
+    public const string AckCheckboxText =
+        "I have a backup of my network driver and I understand that I am responsible for my network adapter.";
 
     public static async Task<RestoreWarningDialogResult> ShowFullWarningAsync(
         XamlRoot xamlRoot,
@@ -29,7 +32,7 @@ public static class RestoreDialogs
     {
         var ack = new CheckBox
         {
-            Content = "I have a backup of my network driver and I understand that I am responsible for my network adapter.",
+            Content = AckCheckboxText,
             FontSize = 12
         };
         var dontShow = new CheckBox

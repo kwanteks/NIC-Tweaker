@@ -17,6 +17,7 @@ public static class AppServices
         services.AddSingleton<INetIpInterfaceService, NetIpInterfaceService>();
         services.AddSingleton<IBackupService, BackupService>();
         services.AddSingleton<IRestorePointService, RestorePointService>();
+        services.AddSingleton<IConfigTransferService, ConfigTransferService>();
         services.AddSingleton<ITweakEngine, TweakEngine>();
         services.AddSingleton<ViewModels.MainViewModel>();
         services.AddTransient<ViewModels.BackupManagerViewModel>();

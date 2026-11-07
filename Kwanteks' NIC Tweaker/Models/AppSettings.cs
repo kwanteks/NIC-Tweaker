@@ -9,4 +9,5 @@ public sealed class AppSettings
     public bool DontShowFullRestoreWarning { get; set; }
     public bool OpacityReduced { get; set; }
     public int BackupRetentionCount { get; set; } = 20;
+    public string? LastConfigFolder { get; set; }
 }

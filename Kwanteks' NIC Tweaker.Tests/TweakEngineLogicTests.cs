@@ -1,5 +1,6 @@
 using Kwanteks.NicTweaker.Models;
 using Kwanteks.NicTweaker.Services;
+using Xunit;
 
 namespace Kwanteks.NicTweaker.Tests;
 
