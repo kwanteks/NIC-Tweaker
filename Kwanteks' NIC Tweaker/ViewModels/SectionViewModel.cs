@@ -11,7 +11,7 @@ public partial class SectionViewModel : ObservableObject
     private readonly ITweakEngine _engine;
     private readonly Func<AdapterInfo?> _getAdapter;
     private readonly Func<string> _getAddressFamily;
-    private readonly Func<Task> _beforeApply;
+    private readonly Func<Task<bool>> _beforeApply;
     private readonly Action<string, bool> _notify;
     private readonly Action<RestartRequirement> _onRestart;
     private readonly IReadOnlyList<TweakDefinition> _defs;
@@ -27,7 +27,7 @@ public partial class SectionViewModel : ObservableObject
         ITweakEngine engine,
         Func<AdapterInfo?> getAdapter,
         Func<string> getAddressFamily,
-        Func<Task> beforeApply,
+        Func<Task<bool>> beforeApply,
         Action<string, bool> notify,
         Action<RestartRequirement> onRestart)
     {
@@ -82,7 +82,11 @@ public partial class SectionViewModel : ObservableObject
         IsBusy = true;
         try
         {
-            await _beforeApply();
+            if (!await _beforeApply())
+            {
+                _notify($"{Title}: cancelled.", false);
+                return;
+            }
             var desired = writable.ToDictionary(i => i.Definition.Id, i => i.DesiredValue);
             var result = await _engine.ApplyTweaksAsync(_defs, _getAdapter(), desired, _getAddressFamily());
             var failed = result.Items.Where(i => !i.Success && !i.Skipped).ToList();

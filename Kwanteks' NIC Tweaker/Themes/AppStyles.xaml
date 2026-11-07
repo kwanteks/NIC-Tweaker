@@ -88,6 +88,7 @@
         <Setter Property="MinHeight" Value="24" />
         <Setter Property="FontSize" Value="{StaticResource TweakerFontSize}" />
         <Setter Property="Padding" Value="4,0,0,0" />
+        <Setter Property="CornerRadius" Value="4" />
         <Setter Property="Foreground" Value="{ThemeResource TextFillColorPrimaryBrush}" />
     </Style>
 

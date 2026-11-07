@@ -7,6 +7,7 @@ public sealed class LoggingService : ILoggingService
     private readonly object _gate = new();
     private readonly ObservableCollection<string> _entries = new();
     private readonly string _logFile;
+    private readonly string _appLogFile;
 
     public event EventHandler<string>? EntryAdded;
     public IReadOnlyList<string> Entries
@@ -17,6 +18,7 @@ public sealed class LoggingService : ILoggingService
     public LoggingService(IStorageService storage)
     {
         _logFile = Path.Combine(storage.LogsDirectory, $"log-{DateTime.Now:yyyyMMdd}.txt");
+        _appLogFile = Path.Combine(storage.DataRoot, "app.log");
     }
 
     public void Info(string message) => Add("INFO", message);
@@ -35,6 +37,7 @@ public sealed class LoggingService : ILoggingService
         {
             _entries.Add(line);
             try { File.AppendAllText(_logFile, line + Environment.NewLine); } catch { /* ignore */ }
+            try { File.AppendAllText(_appLogFile, line + Environment.NewLine); } catch { /* ignore */ }
         }
         EntryAdded?.Invoke(this, line);
     }

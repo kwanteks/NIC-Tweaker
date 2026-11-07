@@ -61,11 +61,39 @@
                 <Button Content="Apply All" Style="{StaticResource TweakerButtonStyle}" Command="{x:Bind ViewModel.ApplyAllCommand}" />
                 <Button Content="Restart Adapter" Style="{StaticResource TweakerButtonStyle}" Command="{x:Bind ViewModel.RestartAdapterCommand}" />
                 <Button Content="Refresh" Style="{StaticResource TweakerButtonStyle}" Command="{x:Bind ViewModel.RefreshCommand}" />
+                <Button Content="Create Restore Point" Style="{StaticResource TweakerButtonStyle}"
+                        Command="{x:Bind ViewModel.RestorePoint.CreateRestorePointCommand}" />
                 <Button Content="Opacity On/Off" Style="{StaticResource TweakerButtonStyle}" Command="{x:Bind ViewModel.ToggleOpacityCommand}" Click="Opacity_Click" />
                 <Button Content="Enable RSS Support" Style="{StaticResource TweakerButtonStyle}"
                         Command="{x:Bind ViewModel.EnableRssSupportCommand}"
                         IsEnabled="{x:Bind ViewModel.RssSupportNeeded, Mode=OneWay}" />
+                <CheckBox Content="Create restore point before applying"
+                          MinHeight="24"
+                          FontSize="12"
+                          CornerRadius="4"
+                          IsChecked="{x:Bind ViewModel.RestorePoint.CreateRestorePointBeforeApply, Mode=TwoWay}"
+                          VerticalAlignment="Center" />
             </StackPanel>
+
+            <InfoBar x:Name="RestoreInfoBar"
+                     IsOpen="{x:Bind ViewModel.RestorePoint.InfoBarOpen, Mode=TwoWay}"
+                     Title="{x:Bind ViewModel.RestorePoint.InfoBarTitle, Mode=OneWay}"
+                     Message="{x:Bind ViewModel.RestorePoint.InfoBarMessage, Mode=OneWay}"
+                     Severity="{x:Bind ViewModel.RestorePoint.InfoBarSeverity, Mode=OneWay}"
+                     IsClosable="True"
+                     Margin="0,4,0,0">
+                <InfoBar.ActionButton>
+                    <Button Content="Open System Restore"
+                            Style="{StaticResource TweakerButtonStyle}"
+                            Command="{x:Bind ViewModel.RestorePoint.OpenSystemRestoreCommand}"
+                            Visibility="{x:Bind ViewModel.RestorePoint.ShowOpenSystemRestore, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
+                </InfoBar.ActionButton>
+            </InfoBar>
+            <Button Content="Enable System Protection"
+                    Style="{StaticResource TweakerButtonStyle}"
+                    Margin="0,4,0,0"
+                    Command="{x:Bind ViewModel.RestorePoint.EnableProtectionCommand}"
+                    Visibility="{x:Bind ViewModel.RestorePoint.ShowEnableProtection, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
 
             <!-- Auto columns so Copy sits flush after the path (no * stretch) -->
             <Grid HorizontalAlignment="Left" ColumnSpacing="8">
@@ -106,7 +134,7 @@
                     <Button Content="Backup" Style="{StaticResource TweakerButtonStyle}">
                         <Button.Flyout>
                             <MenuFlyout>
-                                <MenuFlyoutItem Text="Create restore point" Command="{x:Bind ViewModel.CreateRestorePointCommand}" />
+                                <MenuFlyoutItem Text="Create restore point" Command="{x:Bind ViewModel.RestorePoint.CreateRestorePointCommand}" />
                                 <MenuFlyoutItem Text="Backup now" Command="{x:Bind ViewModel.BackupNowCommand}" />
                                 <MenuFlyoutItem Text="Restore snapshot..." Click="RestoreSnapshot_Click" />
                                 <MenuFlyoutItem Text="Revert last change" Command="{x:Bind ViewModel.RevertLastCommand}" />

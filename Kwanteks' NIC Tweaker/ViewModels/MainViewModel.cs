@@ -26,6 +26,7 @@ public partial class MainViewModel : ObservableObject
     public ObservableCollection<CpuAffinityItem> CpuAffinity { get; } = new();
 
     public AppSettings Settings { get; }
+    public RestorePointViewModel RestorePoint { get; }
 
     public SectionViewModel RssSection { get; }
     public SectionViewModel RssGlobalSection { get; }
@@ -116,6 +117,11 @@ public partial class MainViewModel : ObservableObject
                 _ => null
             };
         }
+
+        RestorePoint = new RestorePointViewModel(
+            _restorePoints, _backups, _storage, _log, _registry, Settings,
+            () => SelectedAdapter, () => AllSections, Notify, BeginBusy, EndBusy,
+            text => BusyText = text);
 
         SectionViewModel Make(string title, IEnumerable<TweakDefinition> defs) =>
             new(title, defs, _engine, () => SelectedAdapter, () => AddressFamily, BeforeApplyAsync, Notify, OnRestart);
@@ -278,17 +284,7 @@ public partial class MainViewModel : ObservableObject
             await section.RefreshAsync(token);
     }
 
-    private async Task BeforeApplyAsync()
-    {
-        if (!Settings.CreateRestorePointBeforeApply) return;
-        var result = await _restorePoints.CreateAsync("Kwanteks' NIC Tweaker");
-        if (!result.Success)
-        {
-            StatusMessage = result.Message;
-            StatusIsError = false;
-            _log.Warn(result.Message);
-        }
-    }
+    private Task<bool> BeforeApplyAsync() => RestorePoint.PrepareBeforeApplyAsync(outerOwnsBusy: IsBusy);
 
     private async Task EnsureOriginalBackupAsync()
     {
@@ -479,7 +475,12 @@ public partial class MainViewModel : ObservableObject
         BeginBusy("Applying all settings…");
         try
         {
-            await BeforeApplyAsync();
+            if (!await BeforeApplyAsync())
+            {
+                StatusMessage = "Apply All cancelled.";
+                StatusIsError = false;
+                return;
+            }
             RestartRequirement max = RestartRequirement.None;
             var failures = 0;
             foreach (var section in AllSections)
@@ -597,14 +598,6 @@ public partial class MainViewModel : ObservableObject
             section.ApplyPresetValues(map);
         StatusMessage = $"Loaded {name} preset into UI (not written until Apply).";
         StatusIsError = false;
-    }
-
-    [RelayCommand]
-    private async Task CreateRestorePointAsync()
-    {
-        var r = await _restorePoints.CreateAsync("Kwanteks' NIC Tweaker (manual)");
-        StatusMessage = r.Message;
-        StatusIsError = !r.Success;
     }
 
     [RelayCommand]
