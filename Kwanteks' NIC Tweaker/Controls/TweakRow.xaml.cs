@@ -20,4 +20,14 @@ public sealed partial class TweakRow : UserControl
     {
         InitializeComponent();
     }
+
+    private void ValueCombo_TextSubmitted(ComboBox sender, ComboBoxTextSubmittedEventArgs args)
+    {
+        if (Item is null) return;
+        var text = args.Text?.Trim();
+        if (string.IsNullOrEmpty(text)) return;
+        Item.EnsureOptionPublic(text);
+        Item.SelectedDisplay = text;
+        args.Handled = true;
+    }
 }

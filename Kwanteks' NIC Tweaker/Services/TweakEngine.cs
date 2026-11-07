@@ -419,7 +419,7 @@ public sealed class TweakEngine : ITweakEngine
             _ => null
         };
 
-        if (raw is null)
+        if (string.IsNullOrWhiteSpace(raw))
             return new TweakCurrentValue { TweakId = def.Id, IsNotSet = true, DisplayValue = def.DefaultDisplay };
 
         if (def.RssProperty == "Enabled")
@@ -582,6 +582,15 @@ $g = Get-NetOffloadGlobalSetting
     private static string MapToDisplay(TweakDefinition def, string raw)
     {
         var match = def.Options.FirstOrDefault(o => o.Value.Equals(raw, StringComparison.OrdinalIgnoreCase));
-        return match?.Display ?? raw;
+        if (match is not null) return match.Display;
+
+        // NetIPInterface Store often returns Active/Persistent; UI shows ActiveStore/PersistentStore.
+        if (def.NetIpProperty == "Store")
+        {
+            if (raw.Equals("Active", StringComparison.OrdinalIgnoreCase)) return "ActiveStore";
+            if (raw.Equals("Persistent", StringComparison.OrdinalIgnoreCase)) return "PersistentStore";
+        }
+
+        return raw;
     }
 }

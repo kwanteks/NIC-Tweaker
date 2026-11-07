@@ -180,16 +180,32 @@ public partial class MainViewModel : ObservableObject
         _ = OnAdapterChangedAsync(value);
     }
 
+    private bool _addressFamilySync;
+
     partial void OnIpv4SelectedChanged(bool value)
     {
-        if (value) Ipv6Selected = false;
-        _ = InterfaceSection.RefreshAsync();
+        if (_addressFamilySync) return;
+        if (value)
+        {
+            _addressFamilySync = true;
+            try { Ipv6Selected = false; }
+            finally { _addressFamilySync = false; }
+        }
+        if (!IsBusy)
+            _ = InterfaceSection.RefreshAsync();
     }
 
     partial void OnIpv6SelectedChanged(bool value)
     {
-        if (value) Ipv4Selected = false;
-        _ = InterfaceSection.RefreshAsync();
+        if (_addressFamilySync) return;
+        if (value)
+        {
+            _addressFamilySync = true;
+            try { Ipv4Selected = false; }
+            finally { _addressFamilySync = false; }
+        }
+        if (!IsBusy)
+            _ = InterfaceSection.RefreshAsync();
     }
 
     partial void OnThemeChoiceChanged(string value)
@@ -199,8 +215,11 @@ public partial class MainViewModel : ObservableObject
         App.ApplyTheme(value);
     }
 
+    private int _adapterLoadGen;
+
     private async Task OnAdapterChangedAsync(AdapterInfo? adapter)
     {
+        var gen = Interlocked.Increment(ref _adapterLoadGen);
         _cts?.Cancel();
         _cts = new CancellationTokenSource();
         var token = _cts.Token;
@@ -210,22 +229,31 @@ public partial class MainViewModel : ObservableObject
         try
         {
             await _adapters.EnrichPathsAsync(adapter, token);
+            if (gen != _adapterLoadGen) return;
             RegistryPath = adapter.ClassKeyPath ?? "(not found)";
             NdisVersion = adapter.NdisVersion ?? "";
             await LoadInterruptAffinityAsync(adapter, token);
+            if (gen != _adapterLoadGen) return;
             await RefreshAllAsync(token);
+            if (gen != _adapterLoadGen) return;
             await DetectRssSupportAsync(adapter, token);
+            if (gen != _adapterLoadGen) return;
             LoadNetBtChecks();
             StatusMessage = "Ready.";
         }
         catch (OperationCanceledException) { }
         catch (Exception ex)
         {
+            if (gen != _adapterLoadGen) return;
             StatusMessage = ex.Message;
             StatusIsError = true;
             _log.Error(ex.Message);
         }
-        finally { EndBusy(); }
+        finally
+        {
+            if (gen == _adapterLoadGen)
+                EndBusy();
+        }
     }
 
     private async Task DetectRssSupportAsync(AdapterInfo adapter, CancellationToken token)
@@ -253,7 +281,7 @@ public partial class MainViewModel : ObservableObject
     private async Task BeforeApplyAsync()
     {
         if (!Settings.CreateRestorePointBeforeApply) return;
-        var result = await _restorePoints.CreateAsync("Network Adapter Tweaker");
+        var result = await _restorePoints.CreateAsync("Kwanteks' NIC Tweaker");
         if (!result.Success)
         {
             StatusMessage = result.Message;
@@ -490,6 +518,28 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private async Task ApplyAdvancedAsync()
+    {
+        BeginBusy("Applying advanced settings…");
+        try
+        {
+            await AdapterFeaturesSection.ApplyCommand.ExecuteAsync(null);
+            await BuffersSection.ApplyCommand.ExecuteAsync(null);
+            await OffloadSection.ApplyCommand.ExecuteAsync(null);
+        }
+        finally { EndBusy(); }
+    }
+
+    [RelayCommand]
+    private void RestoreDefaultsUi()
+    {
+        foreach (var section in AllSections)
+            ResetSectionToDefaults(section.Title);
+        StatusMessage = "UI reset to defaults (not written until Apply).";
+        StatusIsError = false;
+    }
+
+    [RelayCommand]
     private void ClearAffinity()
     {
         foreach (var c in CpuAffinity) c.IsChecked = false;
@@ -552,7 +602,7 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task CreateRestorePointAsync()
     {
-        var r = await _restorePoints.CreateAsync("Network Adapter Tweaker (manual)");
+        var r = await _restorePoints.CreateAsync("Kwanteks' NIC Tweaker (manual)");
         StatusMessage = r.Message;
         StatusIsError = !r.Success;
     }

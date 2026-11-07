@@ -53,7 +53,8 @@ public partial class TweakItemViewModel : ObservableObject
         if (IsNotAvailable)
         {
             EnsureOption("N/A for this adapter");
-            SelectedDisplay = "N/A for this adapter";
+            if (!string.Equals(SelectedDisplay, "N/A for this adapter", StringComparison.Ordinal))
+                SelectedDisplay = "N/A for this adapter";
             IsNotSet = true;
             return;
         }
@@ -74,8 +75,13 @@ public partial class TweakItemViewModel : ObservableObject
         var match = Definition.Options.FirstOrDefault(o =>
             o.Value.Equals(value.RawValue, StringComparison.OrdinalIgnoreCase) ||
             o.Display.Equals(display, StringComparison.OrdinalIgnoreCase));
-        SelectedDisplay = match?.Display ?? display;
+        var next = match?.Display ?? display;
+        // Skip no-op assigns — ComboBox TwoWay re-entry during adapter refresh.
+        if (!string.Equals(SelectedDisplay, next, StringComparison.Ordinal))
+            SelectedDisplay = next;
     }
+
+    public void EnsureOptionPublic(string display) => EnsureOption(display);
 
     public string? DesiredValue => SelectedDisplay;
 

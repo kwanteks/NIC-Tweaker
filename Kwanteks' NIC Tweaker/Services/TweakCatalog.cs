@@ -162,6 +162,13 @@ public static class TweakCatalog
         Adv("adv.usov6", "UsoIPv6", "*UsoIPv6", TweakValueType.String, OffOn, "UDP Segmentation Offload IPv6.", del: true);
         Adv("adv.pmarp", "PMARPOffload", "*PMARPOffload", TweakValueType.String, OffOn, "ARP offload for power management.");
         Adv("adv.pmns", "PMNSOffload", "*PMNSOffload", TweakValueType.String, OffOn, "NS offload for power management.");
+        Adv("adv.pmwifi", "PMWiFiRekeyOffload", "*PMWiFiRekeyOffload", TweakValueType.String, OffOn, "Wi-Fi rekey offload.", del: true);
+        Adv("adv.encap", "EncapsulatedPacketTaskOffload", "*EncapsulatedPacketTaskOffload", TweakValueType.String, OffOn, "Encapsulated packet task offload.", del: true);
+        Adv("adv.encap.nvgre", "EncapsulatedPacketTaskOffloadNvgre", "*EncapsulatedPacketTaskOffloadNvgre", TweakValueType.String, OffOn, "NVGRE encapsulated offload.", del: true);
+        Adv("adv.encap.vxlan", "EncapsulatedPacketTaskOffloadVxlan", "*EncapsulatedPacketTaskOffloadVxlan", TweakValueType.String, OffOn, "VXLAN encapsulated offload.", del: true);
+        Adv("adv.ipsecv1", "IPsecOffloadV1IPv4", "*IPsecOffloadV1IPv4", TweakValueType.String, OffOnTxRx, "IPsec offload v1 IPv4.", del: true);
+        Adv("adv.ipsecv2v4", "IPsecOffloadV2IPv4", "*IPsecOffloadV2IPv4", TweakValueType.String, OffOnTxRx, "IPsec offload v2 IPv4.", del: true);
+        Adv("adv.ipsecv2", "IPsecOffloadV2", "*IPsecOffloadV2", TweakValueType.String, OffOnTxRx, "IPsec offload v2.", del: true);
 
         // RSS Global
         list.Add(Reg(TweakSection.RssGlobal, "rssg.tcpip", "TCP/IP_RssBaseCpu",
@@ -185,6 +192,12 @@ public static class TweakCatalog
         Pow("pow.delayed", "DelayedPowerUp", "DisableDelayedPowerUp", TweakValueType.DWord,
             [new("Enabled", "0"), new("Disabled", "1")], "Delayed power-up (registry DisableDelayedPowerUp is inverted).");
         Pow("pow.reduce", "ReduceSpeedOnPowerDown", "ReduceSpeedOnPowerDown", TweakValueType.DWord, DisabledEnabled, "Reduce link speed on power down.");
+        Pow("pow.wake.magic", "WakeOnMagicPacket", "*WakeOnMagicPacket", TweakValueType.String, DisabledEnabled, "Wake on magic packet.");
+        Pow("pow.wake.pattern", "WakeOnPattern", "*WakeOnPattern", TweakValueType.String, DisabledEnabled, "Wake on pattern.");
+        Pow("pow.eee", "EEE", "*EEE", TweakValueType.String, DisabledEnabled, "Energy Efficient Ethernet.");
+        Pow("pow.eee.link", "EEELinkAdvertisement", "*EEELinkAdvertisement", TweakValueType.String, DisabledEnabled, "EEE link advertisement.");
+        Pow("pow.sleep.disconnect", "DeviceSleepOnDisconnect", "*DeviceSleepOnDisconnect", TweakValueType.String, DisabledEnabled, "Sleep on media disconnect.");
+        Pow("pow.green", "EnableGreenEthernet", "EnableGreenEthernet", TweakValueType.DWord, DisabledEnabled, "Green Ethernet.");
 
         // Extra global TCP/NetBT registry knobs (Apply NetBT / TCP button)
         list.Add(Reg(TweakSection.GlobalSettings, "global.congestion", "CongestionProvider",
@@ -216,15 +229,21 @@ public static class TweakCatalog
             {
                 "EcnMarking" => [new("AppDecide", "AppDecide"), new("Disabled", "Disabled"), new("UseEct1", "UseEct1"), new("UseEct0", "UseEct0")],
                 "RouterDiscovery" => [new("Disabled", "Disabled"), new("Enabled", "Enabled"), new("ControlledByDHCP", "ControlledByDHCP")],
-                "Store" => [new("Active", "Active"), new("Persistent", "Persistent")],
+                "Store" => [new("ActiveStore", "Active"), new("PersistentStore", "Persistent")],
                 _ => enabledDisabled
+            };
+
+            var label = p switch
+            {
+                "NeighborUnreachabilityDetection" => "NeighborUnreachDetection",
+                _ => p
             };
 
             list.Add(new TweakDefinition
             {
                 Id = $"iface.{p.ToLowerInvariant()}",
                 Section = TweakSection.InterfaceSettings,
-                Label = p,
+                Label = label,
                 Backend = TweakBackend.NetIpInterface,
                 NetIpProperty = p,
                 ValueType = TweakValueType.Enum,
@@ -243,6 +262,7 @@ public static class TweakCatalog
             Backend = TweakBackend.NetIpInterface,
             NetIpProperty = "NeighborDiscoverySupported",
             ValueType = TweakValueType.Enum,
+            Options = [new("Yes", "True"), new("No", "False"), new("Yes", "yes"), new("No", "no")],
             IsReadOnly = true,
             Description = "Read-only on most systems.",
             RiskLevel = RiskLevel.Low
@@ -282,7 +302,7 @@ public static class TweakCatalog
         IfaceNum("RetransmitTime", "RetransmitTime", 0, int.MaxValue, "ms");
         IfaceNum("DadRetransmitTime", "DadRetransmitTime", 0, int.MaxValue, "ms");
         IfaceNum("DadTransmits", "DadTransmits", 0, 100, "count");
-        IfaceNum("NlMtu", "NlMtu", 0, int.MaxValue, "bytes");
+        IfaceNum("NlMtu", "MTU", 0, int.MaxValue, "bytes");
 
         // Interrupt
         list.Add(Reg(TweakSection.InterruptSettings, "int.msi", "MSI Mode",

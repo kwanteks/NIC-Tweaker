@@ -26,7 +26,7 @@ public sealed partial class MainWindow : Window
         var hwnd = WindowNative.GetWindowHandle(this);
         var windowId = Win32Interop.GetWindowIdFromWindow(hwnd);
         var appWindow = AppWindow.GetFromWindowId(windowId);
-        appWindow.Title = "Network Adapter - Tweaker";
+        appWindow.Title = "Kwanteks' NIC Tweaker";
         appWindow.Resize(new SizeInt32(1550, 1000));
 
         var iconPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Kwanteks.ico");

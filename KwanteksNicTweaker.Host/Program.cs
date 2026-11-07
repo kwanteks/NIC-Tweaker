@@ -14,7 +14,7 @@ internal static class Program
         {
             var appDir = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "KwanteksNicTweaker", "app");
+                "Kwanteks' NIC Tweaker", "app");
             var exePath = Path.Combine(appDir, "KwanteksNicTweaker.exe");
             var marker = Path.Combine(appDir, ".payload-version");
             var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "1.0.0";

@@ -22,7 +22,9 @@
             ToolTipService.ToolTip="{x:Bind Item.TooltipText, Mode=OneWay}"
             Opacity="{x:Bind Item.EditorOpacity, Mode=OneWay}" />
 
+        <!-- SelectedItem only — binding Text+SelectedItem TwoWay to the same property stack-overflows on refresh -->
         <ComboBox
+            x:Name="ValueCombo"
             Grid.Column="1"
             MinHeight="26"
             MaxHeight="28"
@@ -35,9 +37,10 @@
             BorderThickness="1"
             ItemsSource="{x:Bind Item.OptionDisplays, Mode=OneWay}"
             SelectedItem="{x:Bind Item.SelectedDisplay, Mode=TwoWay}"
+            Text="{x:Bind Item.SelectedDisplay, Mode=OneWay}"
             IsEditable="{x:Bind Item.AllowFreeText, Mode=OneWay}"
             IsEnabled="{x:Bind Item.IsEditorEnabled, Mode=OneWay}"
-            Text="{x:Bind Item.SelectedDisplay, Mode=TwoWay}"
+            TextSubmitted="ValueCombo_TextSubmitted"
             AutomationProperties.Name="{x:Bind Item.Label, Mode=OneWay}" />
     </Grid>
 </UserControl>

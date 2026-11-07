@@ -100,7 +100,7 @@
                     <Button Content="Intel" Style="{StaticResource TweakerButtonStyle}" Command="{x:Bind ViewModel.LoadPresetCommand}" CommandParameter="Intel" />
                     <Button Content="Realtek" Style="{StaticResource TweakerButtonStyle}" Command="{x:Bind ViewModel.LoadPresetCommand}" CommandParameter="Realtek" />
                     <TextBlock FontSize="11" FontStyle="Italic" Foreground="{ThemeResource TweakerMutedTextBrush}" VerticalAlignment="Center"
-                               Text="This program is a remake of st1icky's network adapter tweaker. Presets fill the UI only until Apply." />
+                               Text="Kwanteks' NIC Tweaker — remake of st1icky's network adapter tweaker. Presets fill the UI only until Apply." />
                 </StackPanel>
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
                     <Button Content="Backup" Style="{StaticResource TweakerButtonStyle}">
@@ -220,7 +220,7 @@
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
-                                <Button Content="Apply" Style="{StaticResource TweakerButtonStyle}" Margin="0,6,0,0" Command="{x:Bind ViewModel.PowerSection.ApplyCommand}" />
+                                <Button Content="Apply Power" Style="{StaticResource TweakerButtonStyle}" Margin="0,6,0,0" Command="{x:Bind ViewModel.PowerSection.ApplyCommand}" />
                             </StackPanel>
                         </controls:GroupBox.ContentHost>
                     </controls:GroupBox>
@@ -265,7 +265,7 @@
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
-                                <Button Content="Apply" Style="{StaticResource TweakerButtonStyle}" Margin="0,6,0,0" Command="{x:Bind ViewModel.InterfaceSection.ApplyCommand}" />
+                                <Button Content="Apply Interface" Style="{StaticResource TweakerButtonStyle}" Margin="0,6,0,0" Command="{x:Bind ViewModel.InterfaceSection.ApplyCommand}" />
                             </StackPanel>
                         </controls:GroupBox.ContentHost>
                     </controls:GroupBox>
@@ -312,7 +312,8 @@
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
-                                <Button Content="Apply" Style="{StaticResource TweakerButtonStyle}" Margin="0,6,0,0" Command="{x:Bind ViewModel.OffloadSection.ApplyCommand}" />
+                                <Button Content="Apply Advanced" Style="{StaticResource TweakerButtonStyle}" Margin="0,6,0,0"
+                                        Command="{x:Bind ViewModel.ApplyAdvancedCommand}" />
                             </StackPanel>
                         </controls:GroupBox.ContentHost>
                     </controls:GroupBox>
@@ -331,6 +332,10 @@
                             </StackPanel>
                         </controls:GroupBox.ContentHost>
                     </controls:GroupBox>
+
+                    <Button Content="Restore Defaults" Style="{StaticResource TweakerButtonStyle}" Margin="0,8,0,12"
+                            Command="{x:Bind ViewModel.RestoreDefaultsUiCommand}"
+                            ToolTipService.ToolTip="Reset all combo boxes to Not set / defaults in the UI only (does not write registry until Apply)." />
                 </StackPanel>
             </Grid>
         </ScrollViewer>

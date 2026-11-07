@@ -45,7 +45,7 @@ public partial class SettingsViewModel : ObservableObject
     [RelayCommand]
     private async Task CreateRestorePointAsync()
     {
-        var result = await _restorePoints.CreateAsync("Kwanteks NIC Tweaker (manual)");
+        var result = await _restorePoints.CreateAsync("Kwanteks' NIC Tweaker (manual)");
         StatusMessage = result.Message;
     }
 }

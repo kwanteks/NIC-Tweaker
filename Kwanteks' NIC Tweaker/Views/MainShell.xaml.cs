@@ -159,7 +159,7 @@ public sealed partial class MainShell : UserControl
         if (window is null) return;
         var picker = new FileSavePicker();
         InitializeWithWindow.Initialize(picker, WindowNative.GetWindowHandle(window));
-        picker.SuggestedFileName = $"nictweaker-{id}";
+        picker.SuggestedFileName = $"Kwanteks-NIC-Tweaker-{id}";
         picker.FileTypeChoices.Add("JSON", [".json"]);
         var file = await picker.PickSaveFileAsync();
         if (file is null) return;

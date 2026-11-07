@@ -2,9 +2,10 @@ using Kwanteks.NicTweaker.Models;
 
 namespace Kwanteks.NicTweaker.Services;
 
-/// <summary>Maps screenshot GroupBoxes to tweak Ids without splitting the catalog sections.</summary>
+/// <summary>Maps GroupBoxes to tweak Ids (script + remake layout).</summary>
 public static class UiGroups
 {
+    // Original RSS Settings (+ DisablePortScaling/ManyCoreScaling live here in the script)
     public static IReadOnlyList<TweakDefinition> RssSettings => Ids(
         "rss.status", "rss.profile", "rss.queues", "rss.baseproc", "rss.maxproc", "rss.maxprocs",
         "rss.disableportscaling", "rss.manycore");
@@ -16,11 +17,11 @@ public static class UiGroups
     public static IReadOnlyList<TweakDefinition> PowerSaving =>
         TweakCatalog.ForSection(TweakSection.PowerSaving).ToList();
 
+    // Script Global Settings first, then remake TCP/NetBT knobs
     public static IReadOnlyList<TweakDefinition> GlobalSettings => Ids(
-        "global.rsc", "global.pcf", "global.chimney", "global.taskoffload",
-        "global.networkdirect", "global.networkdirect.subnets",
-        "global.congestion", "global.tcpack", "global.loopbackmtu", "global.throttle",
-        "global.rss");
+        "global.rss", "global.rsc", "global.chimney", "global.taskoffload",
+        "global.networkdirect", "global.networkdirect.subnets", "global.pcf",
+        "global.congestion", "global.tcpack", "global.loopbackmtu", "global.throttle");
 
     public static IReadOnlyList<TweakDefinition> InterfaceSettings =>
         TweakCatalog.ForSection(TweakSection.InterfaceSettings).ToList();
@@ -30,12 +31,17 @@ public static class UiGroups
 
     public static IReadOnlyList<TweakDefinition> BuffersCoalesce => Ids(
         "adv.rxbuf", "adv.txbuf", "adv.intmod", "adv.itr", "adv.txintdelay",
-        "adv.coalesce", "adv.rsciPv4", "adv.rsciPv6", "adv.udprsc", "adv.forcersc", "adv.coalescebuf");
+        "adv.coalesce", "adv.coalescebuf", "adv.rsciPv4", "adv.rsciPv6", "adv.udprsc", "adv.forcersc");
 
+    // Script Adv offloads + remake USC/IPsec/encap/PM Wi‑Fi
     public static IReadOnlyList<TweakDefinition> OffloadSettings => Ids(
         "adv.ip4csum", "adv.tcp4csum", "adv.tcp6csum", "adv.udp4csum", "adv.udp6csum",
-        "adv.tcpudp4", "adv.tcpudp6", "adv.lsov1", "adv.lsov2v4", "adv.lsov2v6",
-        "adv.usov4", "adv.usov6", "adv.pmarp", "adv.pmns");
+        "adv.tcpudp4", "adv.tcpudp6",
+        "adv.lsov1", "adv.lsov2v4", "adv.lsov2v6",
+        "adv.usov4", "adv.usov6",
+        "adv.encap", "adv.encap.nvgre", "adv.encap.vxlan",
+        "adv.ipsecv1", "adv.ipsecv2v4", "adv.ipsecv2",
+        "adv.pmarp", "adv.pmns", "adv.pmwifi");
 
     public static IReadOnlyList<TweakDefinition> AfdTweaks =>
         TweakCatalog.ForSection(TweakSection.AfdTweaks).ToList();

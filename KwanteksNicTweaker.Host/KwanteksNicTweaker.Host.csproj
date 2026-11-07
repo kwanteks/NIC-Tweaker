@@ -7,6 +7,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>KwanteksNicTweaker</AssemblyName>
     <RootNamespace>Kwanteks.NicTweaker.Host</RootNamespace>
+    <AssemblyTitle>Kwanteks' NIC Tweaker</AssemblyTitle>
+    <Product>Kwanteks' NIC Tweaker</Product>
+    <AssemblyProduct>Kwanteks' NIC Tweaker</AssemblyProduct>
     <ApplicationIcon>..\Kwanteks' NIC Tweaker\Assets\Kwanteks.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>

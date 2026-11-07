@@ -29,7 +29,7 @@ public sealed class StorageService : IStorageService
         {
             DataRoot = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "NetworkTweaker");
+                "Kwanteks' NIC Tweaker");
             Directory.CreateDirectory(DataRoot);
             UsingFallbackLocation = true;
         }
