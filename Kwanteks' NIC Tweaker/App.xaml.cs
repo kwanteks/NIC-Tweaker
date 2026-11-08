@@ -1,4 +1,6 @@
-﻿using Kwanteks.NicTweaker.Services;
+﻿using System.Runtime.InteropServices;
+using System.Text;
+using Kwanteks.NicTweaker.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
@@ -7,6 +9,8 @@ namespace Kwanteks.NicTweaker;
 
 public partial class App : Application
 {
+    private const string AppUserModelId = "Kwanteks.NicTweaker";
+
     private Window? _window;
     private static string? _pendingImportPath;
     public static ServiceProvider Services { get; private set; } = null!;
@@ -15,6 +19,13 @@ public partial class App : Application
 
     public App()
     {
+        try { SetCurrentProcessExplicitAppUserModelID(AppUserModelId); }
+        catch { /* ignore */ }
+
+        UnhandledException += OnUnhandledException;
+        AppDomain.CurrentDomain.UnhandledException += OnDomainUnhandledException;
+        TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
+
         InitializeComponent();
         Services = AppServices.Build();
     }
@@ -66,4 +77,39 @@ public partial class App : Application
         if (MainAppWindow?.Content is UIElement element)
             element.Opacity = reduced ? 0.90 : 1.0;
     }
+
+    private void OnUnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
+    {
+        WriteCrashLog("UI UnhandledException", e.Exception);
+        e.Handled = true;
+    }
+
+    private static void OnDomainUnhandledException(object sender, System.UnhandledExceptionEventArgs e)
+    {
+        WriteCrashLog("AppDomain.UnhandledException", e.ExceptionObject as Exception ?? new Exception(e.ExceptionObject?.ToString()));
+    }
+
+    private static void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
+    {
+        WriteCrashLog("UnobservedTaskException", e.Exception);
+        e.SetObserved();
+    }
+
+    private static void WriteCrashLog(string source, Exception? ex)
+    {
+        try
+        {
+            AppPaths.EnsureCreated();
+            var sb = new StringBuilder();
+            sb.AppendLine($"==== {DateTimeOffset.Now:o} — {source} ====");
+            sb.AppendLine(ex?.ToString() ?? "(null)");
+            sb.AppendLine();
+            File.AppendAllText(AppPaths.CrashLogFile, sb.ToString());
+            try { File.AppendAllText(AppPaths.AppLogFile, sb.ToString()); } catch { /* ignore */ }
+        }
+        catch { /* last resort: never throw from crash logger */ }
+    }
+
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+    private static extern int SetCurrentProcessExplicitAppUserModelID(string appID);
 }

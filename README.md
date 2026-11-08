@@ -1,0 +1,68 @@
+# Kwanteks' NIC Tweaker
+
+WinUI 3 desktop app for tuning Windows NIC / TCP / RSS settings. Remake of st1icky’s network adapter tweaker.
+
+Requires **Windows 10 1809+ (x64)** and runs **elevated** (UAC).
+
+## Install
+
+1. Download `KwanteksNICTweaker-Setup-<version>.exe` from Releases.
+2. Accept the disclaimer, finish the wizard.
+3. Launch from the Start Menu (**Kwanteks' NIC Tweaker**). UAC will prompt once.
+
+Silent install:
+
+```text
+KwanteksNICTweaker-Setup-1.0.0.exe /VERYSILENT /NORESTART
+```
+
+Optional: `/DIR="D:\Apps\Kwanteks NIC Tweaker"` `/NOICONS`
+
+## Uninstall
+
+Use **Apps → Installed apps**, or the installer uninstaller. You will be asked whether to keep restore points, exports and settings under `%ProgramData%\KwanteksNICTweaker` (recommended: Keep). Silent uninstall (`/VERYSILENT`) keeps that data.
+
+## Data location
+
+All writable data lives under:
+
+```text
+%ProgramData%\KwanteksNICTweaker\
+  settings.json
+  Logs\            app.log, crash.log
+  Backups\         registry tweak snapshots
+  RestorePoints\   (reserved for custom restore-point files)
+  Exports\         exported configs (optional)
+  Presets\         intel.json / realtek.json / user presets
+  DriverBackup\    exported NIC drivers
+```
+
+The app does **not** write into Program Files. Use **About → Open folder** in the app to open this path.
+
+## Restore points
+
+- **Create Restore Point** uses Windows System Restore when System Protection is enabled.
+- Registry **Backup** snapshots (Backup → Backup now / Restore snapshot…) are stored under `Backups\` and restored from the app menu — not by double-clicking files.
+- Exported configs (`.nttweak`) use **Export Config / Import Config**; import always shows a preview (also `--import "file.nttweak"`).
+
+## Build from source
+
+Prerequisites: .NET 8 SDK, Windows App SDK workload / Visual Studio WinUI bits, [Inno Setup 6](https://jrsoftware.org/isdl.php).
+
+```powershell
+.\build.ps1
+```
+
+Produces:
+
+- `publish\app\` — self-contained unpackaged app
+- `dist\KwanteksNICTweaker-Setup-<version>.exe` — installer
+- `dist\KwanteksNICTweaker-symbols-<version>.zip` — PDBs
+
+Publish only: `.\build.ps1 -SkipInstaller`  
+Optional signing: `.\build.ps1 -Sign <cert-thumbprint>`
+
+## Notes
+
+- Unpackaged (`WindowsPackageType=None`), self-contained, `win-x64`, `requireAdministrator`.
+- GitHub Releases URL in About is a placeholder until you set it.

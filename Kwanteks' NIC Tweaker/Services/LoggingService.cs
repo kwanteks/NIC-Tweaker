@@ -18,7 +18,7 @@ public sealed class LoggingService : ILoggingService
     public LoggingService(IStorageService storage)
     {
         _logFile = Path.Combine(storage.LogsDirectory, $"log-{DateTime.Now:yyyyMMdd}.txt");
-        _appLogFile = Path.Combine(storage.DataRoot, "app.log");
+        _appLogFile = AppPaths.AppLogFile;
     }
 
     public void Info(string message) => Add("INFO", message);

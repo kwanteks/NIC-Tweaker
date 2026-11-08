@@ -7,35 +7,20 @@ public sealed class StorageService : IStorageService
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
-    public string DataRoot { get; }
-    public bool UsingFallbackLocation { get; }
-    public string BackupsDirectory => Path.Combine(DataRoot, "Backups");
-    public string LogsDirectory => Path.Combine(DataRoot, "Logs");
-    public string SettingsPath => Path.Combine(DataRoot, "settings.json");
+    public string DataRoot => AppPaths.DataRoot;
+    public string BackupsDirectory => AppPaths.Backups;
+    public string LogsDirectory => AppPaths.Logs;
+    public string PresetsDirectory => AppPaths.Presets;
+    public string DriverBackupDirectory => AppPaths.DriverBackup;
+    public string RestorePointsDirectory => AppPaths.RestorePoints;
+    public string ExportsDirectory => AppPaths.Exports;
+    public string SettingsPath => AppPaths.SettingsFile;
 
     public StorageService()
     {
-        var portable = Path.Combine(AppContext.BaseDirectory, "Data");
-        try
-        {
-            Directory.CreateDirectory(portable);
-            var probe = Path.Combine(portable, ".write-test");
-            File.WriteAllText(probe, "ok");
-            File.Delete(probe);
-            DataRoot = portable;
-            UsingFallbackLocation = false;
-        }
-        catch
-        {
-            DataRoot = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "Kwanteks' NIC Tweaker");
-            Directory.CreateDirectory(DataRoot);
-            UsingFallbackLocation = true;
-        }
-
-        Directory.CreateDirectory(BackupsDirectory);
-        Directory.CreateDirectory(LogsDirectory);
+        AppPaths.MigrateFromLegacyIfNeeded();
+        AppPaths.EnsureCreated();
+        AppPaths.SeedBundledPresets();
     }
 
     public AppSettings LoadSettings()
@@ -55,6 +40,7 @@ public sealed class StorageService : IStorageService
 
     public void SaveSettings(AppSettings settings)
     {
+        AppPaths.EnsureCreated();
         var json = JsonSerializer.Serialize(settings, JsonOptions);
         File.WriteAllText(SettingsPath, json);
     }

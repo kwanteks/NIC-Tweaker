@@ -56,8 +56,6 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private string? _statusMessage;
     [ObservableProperty] private bool _statusIsError;
     [ObservableProperty] private bool _showFirstLaunchWarning;
-    [ObservableProperty] private bool _usingFallbackStorage;
-    [ObservableProperty] private string _fallbackStoragePath = "";
     [ObservableProperty] private bool _ipv4Selected = true;
     [ObservableProperty] private bool _ipv6Selected;
     [ObservableProperty] private bool _opacityReduced;
@@ -99,8 +97,6 @@ public partial class MainViewModel : ObservableObject
         OpacityReduced = Settings.OpacityReduced;
         ThemeChoice = Settings.Theme;
         ShowFirstLaunchWarning = !Settings.FirstLaunchWarningShown;
-        UsingFallbackStorage = storage.UsingFallbackLocation;
-        FallbackStoragePath = storage.DataRoot;
 
         _log.EntryAdded += (_, line) =>
         {
@@ -336,16 +332,7 @@ public partial class MainViewModel : ObservableObject
 
     private void EnsurePresetsOnDisk()
     {
-        var dir = Path.Combine(_storage.DataRoot, "Presets");
-        Directory.CreateDirectory(dir);
-        foreach (var name in new[] { "intel.json", "realtek.json" })
-        {
-            var dest = Path.Combine(dir, name);
-            if (File.Exists(dest)) continue;
-            var bundled = Path.Combine(AppContext.BaseDirectory, "Data", "Presets", name);
-            if (File.Exists(bundled))
-                File.Copy(bundled, dest);
-        }
+        AppPaths.SeedBundledPresets();
     }
 
     private void RecalcAffinityHex()
@@ -609,7 +596,7 @@ public partial class MainViewModel : ObservableObject
     private void LoadPreset(string? name)
     {
         if (string.IsNullOrWhiteSpace(name)) return;
-        var path = Path.Combine(_storage.DataRoot, "Presets", $"{name.ToLowerInvariant()}.json");
+        var path = Path.Combine(_storage.PresetsDirectory, $"{name.ToLowerInvariant()}.json");
         if (!File.Exists(path))
         {
             StatusMessage = $"Preset not found: {path}";

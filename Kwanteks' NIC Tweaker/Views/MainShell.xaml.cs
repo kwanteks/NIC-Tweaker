@@ -128,6 +128,44 @@ public sealed partial class MainShell : UserControl
     private void Opacity_Click(object sender, RoutedEventArgs e) =>
         App.SetWindowOpacity(ViewModel.OpacityReduced);
 
+    private async void About_Click(object sender, RoutedEventArgs e)
+    {
+        var settings = App.Services.GetRequiredService<SettingsViewModel>();
+        var pathBlock = new TextBlock
+        {
+            Text = settings.DataPath,
+            FontSize = 12,
+            TextWrapping = TextWrapping.Wrap,
+            IsTextSelectionEnabled = true
+        };
+        var openBtn = new Button { Content = "Open folder", FontSize = 12, MinHeight = 28 };
+        openBtn.Click += (_, _) => settings.OpenDataFolderCommand.Execute(null);
+        var updatesBtn = new Button { Content = "Check for updates", FontSize = 12, MinHeight = 28 };
+        updatesBtn.Click += (_, _) => settings.CheckForUpdatesCommand.Execute(null);
+
+        var panel = new StackPanel { Spacing = 8, Width = 420 };
+        panel.Children.Add(new TextBlock { Text = $"Kwanteks' NIC Tweaker  v{settings.AppVersion}", FontSize = 14, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold });
+        panel.Children.Add(new TextBlock { Text = "Data folder (%ProgramData%\\KwanteksNICTweaker):", FontSize = 12 });
+        panel.Children.Add(pathBlock);
+        panel.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { openBtn, updatesBtn } });
+        panel.Children.Add(new TextBlock
+        {
+            FontSize = 11,
+            TextWrapping = TextWrapping.Wrap,
+            Text = "Restore points and exports live in that folder. Uninstall keeps them unless you choose to delete."
+        });
+
+        var dialog = new ContentDialog
+        {
+            Title = "About",
+            Content = panel,
+            CloseButtonText = "Close",
+            XamlRoot = XamlRoot,
+            RequestedTheme = ElementTheme.Dark
+        };
+        await dialog.ShowAsync();
+    }
+
     private void ToggleLog_Click(object sender, RoutedEventArgs e) =>
         ViewModel.LogExpanded = !ViewModel.LogExpanded;
 

@@ -290,7 +290,7 @@ public partial class ConfigTransferViewModel : ObservableObject
     {
         var name = Regex.Replace(adapter.InterfaceDescription ?? "adapter", @"[^\w\-]+", "_").Trim('_');
         if (name.Length > 40) name = name[..40];
-        return $"NetworkTweaker_{name}_{DateTime.Now:yyyyMMdd-HHmmss}";
+        return $"KwanteksNICTweaker_{name}_{DateTime.Now:yyyyMMdd-HHmmss}";
     }
 
     private static string AvoidOverwrite(string path)

@@ -225,8 +225,7 @@ public sealed class RestorePointService : IRestorePointService
 
                 var safeName = SanitizeFolderName(adapterName);
                 var folder = Path.Combine(
-                    _storage.DataRoot,
-                    "DriverBackup",
+                    _storage.DriverBackupDirectory,
                     $"{safeName}_{DateTime.Now:yyyyMMdd-HHmmss}");
                 Directory.CreateDirectory(folder);
 
