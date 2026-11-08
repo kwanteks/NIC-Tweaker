@@ -35,7 +35,6 @@
             HorizontalContentAlignment="Left"
             ItemsSource="{x:Bind Item.OptionDisplays, Mode=OneWay}"
             SelectedItem="{x:Bind Item.SelectedDisplay, Mode=TwoWay}"
-            Text="{x:Bind Item.SelectedDisplay, Mode=OneWay}"
             IsEditable="{x:Bind Item.AllowFreeText, Mode=OneWay}"
             IsEnabled="{x:Bind Item.IsEditorEnabled, Mode=OneWay}"
             TextSubmitted="ValueCombo_TextSubmitted"

@@ -47,6 +47,7 @@ public sealed class TweakEngine : ITweakEngine
         RssSettings? rss = null;
         NetIpInterfaceSnapshot? netIp = null;
         Dictionary<string, string?>? offload = null;
+        Dictionary<string, AdvancedPropertyValue>? advanced = null;
 
         if (defs.Any(d => d.Backend == TweakBackend.NetAdapterRss) && adapter is not null)
         {
@@ -66,10 +67,18 @@ public sealed class TweakEngine : ITweakEngine
             catch (Exception ex) { _log.Warn($"Get-NetOffloadGlobalSetting: {ex.Message}"); }
         }
 
+        if (adapter is not null && defs.Any(d => d.Backend == TweakBackend.Registry
+                && d.PathTemplate is not null
+                && d.PathTemplate.Contains("{AdapterClassKey}", StringComparison.Ordinal)))
+        {
+            try { advanced = await ReadAdvancedPropertiesAsync(adapter, cancellationToken); }
+            catch (Exception ex) { _log.Warn($"Get-NetAdapterAdvancedProperty: {ex.Message}"); }
+        }
+
         foreach (var def in defs)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            result[def.Id] = ReadOne(def, adapter, rss, netIp, offload);
+            result[def.Id] = ReadOne(def, adapter, rss, netIp, offload, advanced);
         }
 
         return result;
@@ -321,32 +330,32 @@ public sealed class TweakEngine : ITweakEngine
         AdapterInfo? adapter,
         RssSettings? rss,
         NetIpInterfaceSnapshot? netIp,
-        Dictionary<string, string?>? offload)
+        Dictionary<string, string?>? offload,
+        Dictionary<string, AdvancedPropertyValue>? advanced)
     {
         try
         {
             return def.Backend switch
             {
-                TweakBackend.Registry => ReadRegistry(def, adapter),
+                TweakBackend.Registry => ReadRegistry(def, adapter, advanced),
                 TweakBackend.NetAdapterRss => ReadRss(def, rss),
                 TweakBackend.NetOffloadGlobal => ReadOffloadValue(def, offload),
                 TweakBackend.NetIpInterface => ReadNetIp(def, netIp),
-                _ => new TweakCurrentValue { TweakId = def.Id, DisplayValue = def.DefaultDisplay, IsNotSet = true }
+                _ => UnsetCurrent(def)
             };
         }
         catch (Exception ex)
         {
-            return new TweakCurrentValue
-            {
-                TweakId = def.Id,
-                DisplayValue = def.DefaultDisplay,
-                IsNotSet = true,
-                ValidationError = ex.Message
-            };
+            var fallback = UnsetCurrent(def);
+            fallback.ValidationError = ex.Message;
+            return fallback;
         }
     }
 
-    private TweakCurrentValue ReadRegistry(TweakDefinition def, AdapterInfo? adapter)
+    private TweakCurrentValue ReadRegistry(
+        TweakDefinition def,
+        AdapterInfo? adapter,
+        Dictionary<string, AdvancedPropertyValue>? advanced)
     {
         string path;
         try
@@ -355,13 +364,15 @@ public sealed class TweakEngine : ITweakEngine
         }
         catch
         {
-            return new TweakCurrentValue
-            {
-                TweakId = def.Id,
-                IsNotSet = true,
-                DisplayValue = "N/A for this adapter"
-            };
+            return NotAvailable(def);
         }
+
+        var driverDefaultRaw = TryGetNdiDefault(adapter, def.ValueName);
+        var driverDefaultDisplay = driverDefaultRaw is null ? null : MapToDisplay(def, driverDefaultRaw);
+        var ndiDeclared = NdiParamExists(adapter, def.ValueName);
+        var isAdapterClassKey = adapter?.ClassKeyPath is not null
+            && path.StartsWith(adapter.ClassKeyPath, StringComparison.OrdinalIgnoreCase);
+        var adv = FindAdvanced(advanced, def.ValueName);
 
         if (!_registry.ValueExists(path, def.ValueName!))
         {
@@ -373,43 +384,167 @@ public sealed class TweakEngine : ITweakEngine
                 {
                     TweakId = def.Id,
                     IsNotSet = true,
-                    DisplayValue = enabledOpt?.Display ?? def.DefaultDisplay
+                    DisplayValue = enabledOpt?.Display ?? CurrentFallbackDisplay(def),
+                    DriverDefaultDisplay = driverDefaultDisplay ?? enabledOpt?.Display
                 };
             }
 
-            // Adapter keyword not exposed by this driver → N/A (vs missing value → Not set)
-            if (!def.NotDriverDeclared &&
-                adapter?.ClassKeyPath is not null &&
-                path.StartsWith(adapter.ClassKeyPath, StringComparison.OrdinalIgnoreCase) &&
-                !_registry.KeyExists($@"{adapter.ClassKeyPath}\Ndi\Params\{def.ValueName}"))
+            // Live AdvancedProperty (what Device Manager / spinoffs show)
+            if (adv is not null && !string.IsNullOrWhiteSpace(adv.RegistryValue))
+            {
+                var rawAdv = adv.RegistryValue!;
+                return new TweakCurrentValue
+                {
+                    TweakId = def.Id,
+                    IsNotSet = true,
+                    RawValue = rawAdv,
+                    DisplayValue = MapToDisplay(def, rawAdv, adv.DisplayValue),
+                    DriverDefaultDisplay = driverDefaultDisplay ?? MapToDisplay(def, rawAdv, adv.DisplayValue)
+                };
+            }
+
+            // Driver Ndi\Params default
+            if (driverDefaultRaw is not null)
             {
                 return new TweakCurrentValue
                 {
                     TweakId = def.Id,
                     IsNotSet = true,
-                    DisplayValue = "N/A for this adapter"
+                    RawValue = driverDefaultRaw,
+                    DisplayValue = driverDefaultDisplay!,
+                    DriverDefaultDisplay = driverDefaultDisplay
                 };
             }
 
-            return new TweakCurrentValue
+            // Adapter keyword the driver never declared → N/A
+            if (isAdapterClassKey && !def.NotDriverDeclared && !ndiDeclared && adv is null)
+                return NotAvailable(def);
+
+            // Global / OS keys with no registry value → well-known effective default
+            var implicitRaw = ImplicitOsDefault(def);
+            if (implicitRaw is not null)
             {
-                TweakId = def.Id,
-                IsNotSet = true,
-                DisplayValue = def.DefaultDisplay
-            };
+                return new TweakCurrentValue
+                {
+                    TweakId = def.Id,
+                    IsNotSet = true,
+                    RawValue = implicitRaw,
+                    DisplayValue = MapToDisplay(def, implicitRaw),
+                    DriverDefaultDisplay = MapToDisplay(def, implicitRaw)
+                };
+            }
+
+            return UnsetCurrent(def, driverDefaultDisplay);
         }
 
         var raw = _registry.GetValueAsString(path, def.ValueName!) ?? "";
-        var display = MapToDisplay(def, raw);
-        return new TweakCurrentValue { TweakId = def.Id, RawValue = raw, DisplayValue = display };
+        var display = MapToDisplay(def, raw, adv?.DisplayValue);
+        return new TweakCurrentValue
+        {
+            TweakId = def.Id,
+            RawValue = raw,
+            DisplayValue = display,
+            DriverDefaultDisplay = driverDefaultDisplay
+        };
+    }
+
+    private static TweakCurrentValue UnsetCurrent(TweakDefinition def, string? driverDefaultDisplay = null)
+    {
+        var display = driverDefaultDisplay ?? CurrentFallbackDisplay(def);
+        return new TweakCurrentValue
+        {
+            TweakId = def.Id,
+            IsNotSet = true,
+            RawValue = def.Options.FirstOrDefault(o => o.Display.Equals(display, StringComparison.OrdinalIgnoreCase))?.Value,
+            DisplayValue = display,
+            DriverDefaultDisplay = driverDefaultDisplay ?? display
+        };
+    }
+
+    private static string CurrentFallbackDisplay(TweakDefinition def)
+    {
+        if (def.Options.Count > 0)
+            return def.Options[0].Display;
+        return ImplicitOsDefault(def) ?? "";
+    }
+
+    private static string? ImplicitOsDefault(TweakDefinition def) => def.ValueName switch
+    {
+        "TcpAckFrequency" => "2",
+        "RssBaseCpu" => "0",
+        "NetworkThrottlingIndex" => "10",
+        "CongestionProvider" => "Default",
+        "EnableLoopbackLargeMtu" => "1",
+        _ => null
+    };
+
+    private sealed record AdvancedPropertyValue(string? RegistryValue, string? DisplayValue);
+
+    private static AdvancedPropertyValue? FindAdvanced(
+        Dictionary<string, AdvancedPropertyValue>? advanced,
+        string? valueName)
+    {
+        if (advanced is null || string.IsNullOrWhiteSpace(valueName)) return null;
+        foreach (var name in NdiNameCandidates(valueName))
+        {
+            if (advanced.TryGetValue(name, out var hit))
+                return hit;
+        }
+        return null;
+    }
+
+    private static TweakCurrentValue NotAvailable(TweakDefinition def) => new()
+    {
+        TweakId = def.Id,
+        IsNotSet = true,
+        IsNotAvailable = true,
+        DisplayValue = "N/A for this adapter"
+    };
+
+    private bool NdiParamExists(AdapterInfo? adapter, string? valueName)
+    {
+        if (adapter?.ClassKeyPath is null || string.IsNullOrWhiteSpace(valueName))
+            return false;
+
+        foreach (var name in NdiNameCandidates(valueName))
+        {
+            if (_registry.KeyExists($@"{adapter.ClassKeyPath}\Ndi\Params\{name}"))
+                return true;
+        }
+
+        return false;
+    }
+
+    private string? TryGetNdiDefault(AdapterInfo? adapter, string? valueName)
+    {
+        if (adapter?.ClassKeyPath is null || string.IsNullOrWhiteSpace(valueName))
+            return null;
+
+        foreach (var name in NdiNameCandidates(valueName))
+        {
+            var paramPath = $@"{adapter.ClassKeyPath}\Ndi\Params\{name}";
+            var d = _registry.GetValueAsString(paramPath, "default")
+                    ?? _registry.GetValueAsString(paramPath, "Default");
+            if (!string.IsNullOrWhiteSpace(d))
+                return d;
+        }
+
+        return null;
+    }
+
+    private static IEnumerable<string> NdiNameCandidates(string valueName)
+    {
+        yield return valueName;
+        if (valueName.StartsWith('*'))
+            yield return valueName[1..];
+        else
+            yield return "*" + valueName;
     }
 
     private static TweakCurrentValue ReadRss(TweakDefinition def, RssSettings? rss)
     {
-        // Only a real failure to query (rss == null) is "N/A". An adapter without RSS is a valid state:
-        // RSS reads "Disable" and the remaining rows read "Not set", like the original script.
         if (rss is null)
-            return new TweakCurrentValue { TweakId = def.Id, IsNotSet = true, DisplayValue = "N/A for this adapter" };
+            return UnsetCurrent(def);
 
         if (def.RssProperty == "Enabled")
         {
@@ -433,24 +568,47 @@ public sealed class TweakEngine : ITweakEngine
         };
 
         if (string.IsNullOrWhiteSpace(raw))
-            return new TweakCurrentValue { TweakId = def.Id, IsNotSet = true, DisplayValue = def.DefaultDisplay };
+            return UnsetCurrent(def);
 
-        return new TweakCurrentValue { TweakId = def.Id, RawValue = raw, DisplayValue = MapToDisplay(def, raw) };
+        var trimmed = raw.Trim();
+        return new TweakCurrentValue
+        {
+            TweakId = def.Id,
+            RawValue = trimmed,
+            DisplayValue = MapToDisplay(def, trimmed)
+        };
     }
 
     private static TweakCurrentValue ReadOffloadValue(TweakDefinition def, Dictionary<string, string?>? offload)
     {
-        if (offload is null || def.OffloadProperty is null || !offload.TryGetValue(def.OffloadProperty, out var raw) || raw is null)
-            return new TweakCurrentValue { TweakId = def.Id, IsNotSet = true, DisplayValue = def.DefaultDisplay };
-        return new TweakCurrentValue { TweakId = def.Id, RawValue = raw, DisplayValue = raw };
+        if (offload is null || def.OffloadProperty is null
+            || !offload.TryGetValue(def.OffloadProperty, out var raw)
+            || string.IsNullOrWhiteSpace(raw))
+        {
+            return UnsetCurrent(def);
+        }
+
+        var trimmed = raw.Trim();
+        return new TweakCurrentValue
+        {
+            TweakId = def.Id,
+            RawValue = trimmed,
+            DisplayValue = MapToDisplay(def, trimmed)
+        };
     }
 
     private static TweakCurrentValue ReadNetIp(TweakDefinition def, NetIpInterfaceSnapshot? snap)
     {
         if (snap is null || def.NetIpProperty is null ||
-            !snap.Properties.TryGetValue(def.NetIpProperty, out var raw) || raw is null)
-            return new TweakCurrentValue { TweakId = def.Id, IsNotSet = true, DisplayValue = def.DefaultDisplay };
-        return new TweakCurrentValue { TweakId = def.Id, RawValue = raw, DisplayValue = raw };
+            !snap.Properties.TryGetValue(def.NetIpProperty, out var raw) || string.IsNullOrWhiteSpace(raw))
+            return UnsetCurrent(def);
+        var trimmed = raw.Trim();
+        return new TweakCurrentValue
+        {
+            TweakId = def.Id,
+            RawValue = trimmed,
+            DisplayValue = MapToDisplay(def, trimmed)
+        };
     }
 
     private async Task ApplyOneAsync(
@@ -517,27 +675,117 @@ public sealed class TweakEngine : ITweakEngine
             cancellationToken);
     }
 
-    private async Task<Dictionary<string, string?>> ReadOffloadAsync(CancellationToken cancellationToken)
+    private async Task<Dictionary<string, AdvancedPropertyValue>> ReadAdvancedPropertiesAsync(
+        AdapterInfo adapter,
+        CancellationToken cancellationToken)
     {
-        var json = await _ps.RunAsync(@"
-$ErrorActionPreference='Stop'
-$g = Get-NetOffloadGlobalSetting
-@{
-  ReceiveSideScaling = [string]$g.ReceiveSideScaling
-  ReceiveSegmentCoalescing = [string]$g.ReceiveSegmentCoalescing
-  Chimney = [string]$g.Chimney
-  TaskOffload = [string]$g.TaskOffload
-  NetworkDirect = [string]$g.NetworkDirect
-  NetworkDirectAcrossIPSubnets = [string]$g.NetworkDirectAcrossIPSubnets
-  PacketCoalescingFilter = [string]$g.PacketCoalescingFilter
-} | ConvertTo-Json -Compress
+        var escaped = adapter.InterfaceDescription.Replace("'", "''");
+        var json = await _ps.RunAsync($@"
+$ErrorActionPreference='Continue'
+Get-NetAdapterAdvancedProperty -InterfaceDescription '{escaped}' -AllProperties -ErrorAction SilentlyContinue |
+  Select-Object RegistryKeyword, DisplayValue, RegistryValue |
+  ConvertTo-Json -Compress
 ", cancellationToken);
 
-        var dict = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
-        using var doc = System.Text.Json.JsonDocument.Parse(json);
-        foreach (var p in doc.RootElement.EnumerateObject())
-            dict[p.Name] = p.Value.ValueKind == System.Text.Json.JsonValueKind.Null ? null : p.Value.ToString();
+        var dict = new Dictionary<string, AdvancedPropertyValue>(StringComparer.OrdinalIgnoreCase);
+        var payload = ExtractJsonPayload(json);
+        if (payload is null) return dict;
+
+        using var doc = System.Text.Json.JsonDocument.Parse(payload);
+        var root = doc.RootElement;
+        IEnumerable<System.Text.Json.JsonElement> items = root.ValueKind == System.Text.Json.JsonValueKind.Array
+            ? root.EnumerateArray()
+            : [root];
+
+        foreach (var item in items)
+        {
+            if (!item.TryGetProperty("RegistryKeyword", out var kwEl)) continue;
+            var keyword = kwEl.GetString();
+            if (string.IsNullOrWhiteSpace(keyword)) continue;
+
+            string? display = item.TryGetProperty("DisplayValue", out var dv) && dv.ValueKind != System.Text.Json.JsonValueKind.Null
+                ? dv.ToString()
+                : null;
+            string? reg = null;
+            if (item.TryGetProperty("RegistryValue", out var rv))
+            {
+                if (rv.ValueKind == System.Text.Json.JsonValueKind.Array && rv.GetArrayLength() > 0)
+                    reg = rv[0].ToString();
+                else if (rv.ValueKind != System.Text.Json.JsonValueKind.Null)
+                    reg = rv.ToString();
+            }
+
+            if (string.IsNullOrWhiteSpace(reg) && string.IsNullOrWhiteSpace(display)) continue;
+            dict[keyword] = new AdvancedPropertyValue(
+                string.IsNullOrWhiteSpace(reg) ? null : reg.Trim(),
+                string.IsNullOrWhiteSpace(display) ? null : display.Trim());
+        }
+
         return dict;
+    }
+
+    private async Task<Dictionary<string, string?>> ReadOffloadAsync(CancellationToken cancellationToken)
+    {
+        // Same source as St1icky (Get-NetOffloadGlobalSetting | select -expand <Property>).
+        // Per-property try so one missing enum does not blank Chimney/RSS/etc.
+        var json = await _ps.RunAsync(@"
+$ErrorActionPreference='Continue'
+$g = Get-NetOffloadGlobalSetting
+function Get-OffloadProp([string]$name) {
+  try {
+    $v = $g | Select-Object -ExpandProperty $name -ErrorAction Stop
+    if ($null -eq $v) { return $null }
+    return [string]$v
+  } catch { return $null }
+}
+$o = [ordered]@{
+  ReceiveSideScaling = (Get-OffloadProp 'ReceiveSideScaling')
+  ReceiveSegmentCoalescing = (Get-OffloadProp 'ReceiveSegmentCoalescing')
+  Chimney = (Get-OffloadProp 'Chimney')
+  TaskOffload = (Get-OffloadProp 'TaskOffload')
+  NetworkDirect = (Get-OffloadProp 'NetworkDirect')
+  NetworkDirectAcrossIPSubnets = (Get-OffloadProp 'NetworkDirectAcrossIPSubnets')
+  PacketCoalescingFilter = (Get-OffloadProp 'PacketCoalescingFilter')
+}
+$o | ConvertTo-Json -Compress
+", cancellationToken);
+
+        var payload = ExtractJsonObject(json)
+            ?? throw new InvalidOperationException("Get-NetOffloadGlobalSetting returned no JSON.");
+
+        var dict = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+        using var doc = System.Text.Json.JsonDocument.Parse(payload);
+        foreach (var p in doc.RootElement.EnumerateObject())
+        {
+            if (p.Value.ValueKind == System.Text.Json.JsonValueKind.Null)
+                dict[p.Name] = null;
+            else
+            {
+                var s = p.Value.ToString();
+                dict[p.Name] = string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+            }
+        }
+
+        return dict;
+    }
+
+    private static string? ExtractJsonObject(string text) => ExtractJsonPayload(text, preferArray: false);
+
+    private static string? ExtractJsonPayload(string text, bool preferArray = true)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return null;
+        var arrStart = text.IndexOf('[');
+        var objStart = text.IndexOf('{');
+        if (preferArray && arrStart >= 0 && (objStart < 0 || arrStart < objStart))
+        {
+            var arrEnd = text.LastIndexOf(']');
+            if (arrEnd > arrStart) return text[arrStart..(arrEnd + 1)];
+        }
+
+        if (objStart < 0) return null;
+        var objEnd = text.LastIndexOf('}');
+        if (objEnd <= objStart) return null;
+        return text[objStart..(objEnd + 1)];
     }
 
     /// <summary>
@@ -581,10 +829,17 @@ $g = Get-NetOffloadGlobalSetting
         return desired;
     }
 
-    private static string MapToDisplay(TweakDefinition def, string raw)
+    private static string MapToDisplay(TweakDefinition def, string raw, string? displayHint = null)
     {
         var match = def.Options.FirstOrDefault(o => o.Value.Equals(raw, StringComparison.OrdinalIgnoreCase));
         if (match is not null) return match.Display;
+
+        if (!string.IsNullOrWhiteSpace(displayHint))
+        {
+            var byHint = def.Options.FirstOrDefault(o =>
+                o.Display.Equals(displayHint, StringComparison.OrdinalIgnoreCase));
+            if (byHint is not null) return byHint.Display;
+        }
 
         // NetIPInterface Store often returns Active/Persistent; UI shows ActiveStore/PersistentStore.
         if (def.NetIpProperty == "Store")
@@ -593,6 +848,6 @@ $g = Get-NetOffloadGlobalSetting
             if (raw.Equals("Persistent", StringComparison.OrdinalIgnoreCase)) return "PersistentStore";
         }
 
-        return raw;
+        return string.IsNullOrWhiteSpace(displayHint) ? raw : displayHint;
     }
 }

@@ -678,7 +678,13 @@ public partial class MainViewModel : ObservableObject
             string.Equals(s.Title, sectionTitle, StringComparison.OrdinalIgnoreCase));
         if (section is null) return;
         foreach (var item in section.Items.Where(i => i.IsEditorEnabled))
-            item.SelectedDisplay = item.Definition.DefaultDisplay;
+        {
+            var fallback = item.EffectiveDefaultDisplay
+                           ?? item.Definition.Options.FirstOrDefault()?.Display
+                           ?? item.Definition.DefaultDisplay;
+            item.SelectedDisplay = fallback;
+            item.EnsureOptionPublic(fallback);
+        }
         StatusMessage = $"Reset '{section.Title}' UI to defaults (not written until Apply).";
         StatusIsError = false;
     }

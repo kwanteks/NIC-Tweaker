@@ -62,6 +62,17 @@ public class TweakEngineLogicTests
     }
 
     [Fact]
+    public void Offload_options_roundtrip_enabled_disabled_without_inventing_first()
+    {
+        var def = TweakCatalog.All.First(t => t.Id == "global.chimney");
+        Assert.Equal("Disabled", TweakEngine.ResolveStoredValue(def, "Disabled"));
+        Assert.Equal("Enabled", TweakEngine.ResolveStoredValue(def, "Enabled"));
+        Assert.Equal("Disabled", TweakEngine.ResolveStoredValue(def, "disabled"));
+        // MapToDisplay path: raw value must stay itself when it matches an option value.
+        Assert.Contains(def.Options, o => o.Display.Equals("Disabled", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
     public void ResolveStoredValue_maps_display_to_value()
     {
         var def = new TweakDefinition

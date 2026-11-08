@@ -8,12 +8,15 @@ namespace Kwanteks.NicTweaker.ViewModels;
 
 public partial class TweakItemViewModel : ObservableObject
 {
+    public const string NotAvailableDisplay = "N/A for this adapter";
+
     public TweakDefinition Definition { get; }
 
     public string Label => Definition.Label;
     public string TooltipText =>
         $"{Definition.Description}\nRisk: {Definition.RiskLevel}" +
-        (string.IsNullOrEmpty(RestartText) ? "" : $"\n{RestartText}");
+        (string.IsNullOrEmpty(RestartText) ? "" : $"\n{RestartText}") +
+        (IsNotAvailable ? "\nNot supported on this adapter" : "");
 
     public string RestartText => Definition.RequiresRestart switch
     {
@@ -22,13 +25,14 @@ public partial class TweakItemViewModel : ObservableObject
         _ => ""
     };
 
-    // Editable only when the catalog says so (or no fixed options). "Not set" is already in the list.
-    public bool AllowFreeText => Definition.AllowFreeText || Definition.Options.Count == 0;
+    public bool AllowFreeText => !IsNotAvailable && (Definition.AllowFreeText || Definition.Options.Count == 0);
     public Visibility UseCombo => Visibility.Visible;
     public double EditorOpacity => IsNotAvailable ? 0.45 : 1.0;
     public bool IsEditorEnabled => !Definition.IsReadOnly && !IsNotAvailable;
 
     public ObservableCollection<string> OptionDisplays { get; } = new();
+
+    public string? EffectiveDefaultDisplay { get; private set; }
 
     [ObservableProperty] private string? _selectedDisplay;
     [ObservableProperty] private string? _validationError;
@@ -38,52 +42,76 @@ public partial class TweakItemViewModel : ObservableObject
     public TweakItemViewModel(TweakDefinition definition)
     {
         Definition = definition;
-        RebuildOptions(includeNotSet: definition.SupportsDelete);
+        RebuildOptions();
     }
 
-    partial void OnIsNotAvailableChanged(bool value) => OnPropertyChanged(nameof(IsEditorEnabled));
+    partial void OnIsNotAvailableChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsEditorEnabled));
+        OnPropertyChanged(nameof(EditorOpacity));
+        OnPropertyChanged(nameof(AllowFreeText));
+        OnPropertyChanged(nameof(TooltipText));
+    }
 
     public void LoadFrom(TweakCurrentValue value)
     {
         ValidationError = value.ValidationError;
-        IsNotAvailable = string.Equals(value.DisplayValue, "N/A for this adapter", StringComparison.OrdinalIgnoreCase)
-                         || (value.ValidationError is not null && value.IsNotSet && string.IsNullOrWhiteSpace(value.RawValue)
-                             && Definition.Backend == TweakBackend.Registry && value.ValidationError.Contains("not resolved", StringComparison.OrdinalIgnoreCase));
+        IsNotSet = value.IsNotSet;
+        IsNotAvailable = value.IsNotAvailable
+            || string.Equals(value.DisplayValue, NotAvailableDisplay, StringComparison.OrdinalIgnoreCase);
 
         if (IsNotAvailable)
         {
-            EnsureOption("N/A for this adapter");
-            if (!string.Equals(SelectedDisplay, "N/A for this adapter", StringComparison.Ordinal))
-                SelectedDisplay = "N/A for this adapter";
-            IsNotSet = true;
+            OptionDisplays.Clear();
+            OptionDisplays.Add(NotAvailableDisplay);
+            ForceSelect(NotAvailableDisplay);
+            EffectiveDefaultDisplay = null;
             return;
         }
 
-        IsNotSet = value.IsNotSet;
-        var display = string.IsNullOrWhiteSpace(value.DisplayValue)
-            ? Definition.DefaultDisplay
-            : value.DisplayValue;
+        RebuildOptions();
 
-        if (IsNotSet || display.StartsWith("Not set", StringComparison.OrdinalIgnoreCase))
+        // Always prefer a real current value — never show "Not set (default)".
+        string? display = null;
+
+        if (!string.IsNullOrWhiteSpace(value.RawValue))
         {
-            display = Definition.DefaultDisplay;
-            EnsureOption(Definition.DefaultDisplay);
+            var byRaw = Definition.Options.FirstOrDefault(o =>
+                o.Value.Equals(value.RawValue, StringComparison.OrdinalIgnoreCase));
+            display = byRaw?.Display;
+            if (string.IsNullOrWhiteSpace(display))
+                display = Sanitize(value.DisplayValue) ?? value.RawValue;
         }
 
-        EnsureOption(display);
-        // Match against known option displays when raw equals a value
+        display ??= Sanitize(value.DriverDefaultDisplay);
+        display ??= Sanitize(value.DisplayValue);
+
+        if (string.IsNullOrWhiteSpace(display) && Definition.Options.Count > 0)
+            display = Definition.Options[0].Display;
+
+        if (string.IsNullOrWhiteSpace(display))
+            display = value.RawValue ?? "";
+
+        EffectiveDefaultDisplay = Sanitize(value.DriverDefaultDisplay) ?? display;
+
         var match = Definition.Options.FirstOrDefault(o =>
-            o.Value.Equals(value.RawValue, StringComparison.OrdinalIgnoreCase) ||
-            o.Display.Equals(display, StringComparison.OrdinalIgnoreCase));
-        var next = match?.Display ?? display;
-        // Skip no-op assigns — ComboBox TwoWay re-entry during adapter refresh.
-        if (!string.Equals(SelectedDisplay, next, StringComparison.Ordinal))
-            SelectedDisplay = next;
+            (!string.IsNullOrWhiteSpace(value.RawValue)
+                && o.Value.Equals(value.RawValue, StringComparison.OrdinalIgnoreCase))
+            || o.Display.Equals(display, StringComparison.OrdinalIgnoreCase));
+        ForceSelect(match?.Display ?? display);
     }
 
-    public void EnsureOptionPublic(string display) => EnsureOption(display);
+    private static string? Sanitize(string? display)
+    {
+        if (string.IsNullOrWhiteSpace(display)) return null;
+        if (display.StartsWith("Not set", StringComparison.OrdinalIgnoreCase)) return null;
+        if (display.Equals(NotAvailableDisplay, StringComparison.OrdinalIgnoreCase)) return null;
+        return display;
+    }
 
-    public string? DesiredValue => SelectedDisplay;
+    public void EnsureOptionPublic(string display) => EnsureInList(display);
+
+    public string? DesiredValue => IsNotAvailable ? null : SelectedDisplay;
 
     public bool Validate(ITweakEngine engine)
     {
@@ -92,23 +120,36 @@ public partial class TweakItemViewModel : ObservableObject
         return ValidationError is null;
     }
 
-    private void RebuildOptions(bool includeNotSet)
+    private void RebuildOptions()
     {
         OptionDisplays.Clear();
-        if (includeNotSet)
-            OptionDisplays.Add(Definition.DefaultDisplay);
         foreach (var o in Definition.Options)
         {
             if (!OptionDisplays.Contains(o.Display))
                 OptionDisplays.Add(o.Display);
         }
-        if (OptionDisplays.Count == 0)
-            OptionDisplays.Add(Definition.DefaultDisplay);
     }
 
-    private void EnsureOption(string display)
+    private void EnsureInList(string display)
     {
+        if (string.IsNullOrWhiteSpace(display)) return;
+        if (display.StartsWith("Not set", StringComparison.OrdinalIgnoreCase)) return;
         if (!OptionDisplays.Contains(display))
             OptionDisplays.Insert(0, display);
+    }
+
+    private void ForceSelect(string next)
+    {
+        if (string.IsNullOrWhiteSpace(next)) return;
+        EnsureInList(next);
+        if (OptionDisplays.Contains(next))
+        {
+            OptionDisplays.Remove(next);
+            OptionDisplays.Insert(0, next);
+        }
+
+        if (string.Equals(SelectedDisplay, next, StringComparison.Ordinal))
+            SelectedDisplay = null;
+        SelectedDisplay = next;
     }
 }

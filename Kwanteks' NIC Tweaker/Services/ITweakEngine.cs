@@ -8,6 +8,10 @@ public sealed class TweakCurrentValue
     public string? RawValue { get; init; }
     public string DisplayValue { get; init; } = "";
     public bool IsNotSet { get; init; }
+    /// <summary>True when this adapter/driver does not expose the tweak — UI must not allow Apply.</summary>
+    public bool IsNotAvailable { get; init; }
+    /// <summary>Driver Ndi\Params default mapped for UI (used when value is unset / Reset).</summary>
+    public string? DriverDefaultDisplay { get; init; }
     public string? ValidationError { get; set; }
 }
 

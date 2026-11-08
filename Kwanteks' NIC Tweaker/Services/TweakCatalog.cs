@@ -24,10 +24,11 @@ public static class TweakCatalog
         new("Enabled", "1")
     ];
 
+    // Match St1icky / Get-NetOffloadGlobalSetting display strings exactly.
     private static readonly TweakOption[] EnabledDisabledOffload =
     [
-        new("Enabled", "Enabled"),
-        new("Disabled", "Disabled")
+        new("Disabled", "Disabled"),
+        new("Enabled", "Enabled")
     ];
 
     private static readonly IReadOnlyList<TweakDefinition> AllInternal = Build();

@@ -56,7 +56,8 @@ public sealed class TweakDefinition
     public TweakBackend Backend { get; init; } = TweakBackend.Registry;
     public IReadOnlyList<TweakOption> Options { get; init; } = Array.Empty<TweakOption>();
     public bool SupportsDelete { get; init; }
-    public string DefaultDisplay { get; init; } = "Not set (default)";
+    /// <summary>Delete-sentinel label only (not shown as a live value). Prefer empty — UI shows real current values.</summary>
+    public string DefaultDisplay { get; init; } = "";
     public string Description { get; init; } = "";
     public RiskLevel RiskLevel { get; init; } = RiskLevel.Medium;
     public RestartRequirement RequiresRestart { get; init; } = RestartRequirement.None;

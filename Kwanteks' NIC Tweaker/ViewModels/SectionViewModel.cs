@@ -59,7 +59,7 @@ public partial class SectionViewModel : ObservableObject
                     {
                         TweakId = item.Definition.Id,
                         IsNotSet = true,
-                        DisplayValue = item.Definition.DefaultDisplay
+                        DisplayValue = item.Definition.Options.FirstOrDefault()?.Display ?? ""
                     });
             }
         }
