@@ -67,10 +67,10 @@ public static class TweakCatalog
 
         list.Add(Reg(TweakSection.RssSettings, "rss.disableportscaling", "DisablePortScaling",
             PathTemplates.AdapterClassKey, "DisablePortScaling", TweakValueType.DWord, DisabledEnabled,
-            "Disables port scaling on multi-port NICs.", RiskLevel.Medium, RestartRequirement.Adapter, supportsDelete: true));
+            "Disables port scaling on multi-port NICs.", RiskLevel.Medium, RestartRequirement.Adapter, supportsDelete: true, notDriverDeclared: true));
         list.Add(Reg(TweakSection.RssSettings, "rss.manycore", "ManyCoreScaling",
             PathTemplates.AdapterClassKey, "ManyCoreScaling", TweakValueType.DWord, DisabledEnabled,
-            "Enables many-core scaling for RSS.", RiskLevel.Medium, RestartRequirement.Adapter, supportsDelete: true));
+            "Enables many-core scaling for RSS.", RiskLevel.Medium, RestartRequirement.Adapter, supportsDelete: true, notDriverDeclared: true));
 
         // Global
         list.Add(Offload("global.rss", "ReceiveSideScaling", "ReceiveSideScaling", "OS-wide RSS."));
@@ -403,7 +403,8 @@ public static class TweakCatalog
         bool supportsDelete = false,
         bool allowFreeText = false,
         int? min = null,
-        int? max = null) =>
+        int? max = null,
+        bool notDriverDeclared = false) =>
         new()
         {
             Id = id,
@@ -420,6 +421,7 @@ public static class TweakCatalog
             RequiresRestart = restart,
             AllowFreeText = allowFreeText,
             MinValue = min,
-            MaxValue = max
+            MaxValue = max,
+            NotDriverDeclared = notDriverDeclared
         };
 }

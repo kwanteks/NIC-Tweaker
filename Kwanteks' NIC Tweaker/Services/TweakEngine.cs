@@ -378,7 +378,8 @@ public sealed class TweakEngine : ITweakEngine
             }
 
             // Adapter keyword not exposed by this driver → N/A (vs missing value → Not set)
-            if (adapter?.ClassKeyPath is not null &&
+            if (!def.NotDriverDeclared &&
+                adapter?.ClassKeyPath is not null &&
                 path.StartsWith(adapter.ClassKeyPath, StringComparison.OrdinalIgnoreCase) &&
                 !_registry.KeyExists($@"{adapter.ClassKeyPath}\Ndi\Params\{def.ValueName}"))
             {
@@ -405,12 +406,24 @@ public sealed class TweakEngine : ITweakEngine
 
     private static TweakCurrentValue ReadRss(TweakDefinition def, RssSettings? rss)
     {
+        // Only a real failure to query (rss == null) is "N/A". An adapter without RSS is a valid state:
+        // RSS reads "Disable" and the remaining rows read "Not set", like the original script.
         if (rss is null)
             return new TweakCurrentValue { TweakId = def.Id, IsNotSet = true, DisplayValue = "N/A for this adapter" };
 
+        if (def.RssProperty == "Enabled")
+        {
+            var enabled = rss.Enabled == true;
+            return new TweakCurrentValue
+            {
+                TweakId = def.Id,
+                RawValue = enabled ? "true" : "false",
+                DisplayValue = enabled ? "Enable" : "Disable"
+            };
+        }
+
         string? raw = def.RssProperty switch
         {
-            "Enabled" => rss.Enabled?.ToString(),
             "NumberOfReceiveQueues" => rss.NumberOfReceiveQueues?.ToString(),
             "Profile" => rss.Profile,
             "BaseProcessorNumber" => rss.BaseProcessorNumber?.ToString(),
@@ -421,17 +434,6 @@ public sealed class TweakEngine : ITweakEngine
 
         if (string.IsNullOrWhiteSpace(raw))
             return new TweakCurrentValue { TweakId = def.Id, IsNotSet = true, DisplayValue = def.DefaultDisplay };
-
-        if (def.RssProperty == "Enabled")
-        {
-            var enabled = string.Equals(raw, "True", StringComparison.OrdinalIgnoreCase) || raw == "true";
-            return new TweakCurrentValue
-            {
-                TweakId = def.Id,
-                RawValue = enabled ? "true" : "false",
-                DisplayValue = enabled ? "Enable" : "Disable"
-            };
-        }
 
         return new TweakCurrentValue { TweakId = def.Id, RawValue = raw, DisplayValue = MapToDisplay(def, raw) };
     }

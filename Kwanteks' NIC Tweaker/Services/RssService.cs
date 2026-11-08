@@ -20,41 +20,112 @@ public sealed class RssService : IRssService
     public async Task<RssSettings> GetAsync(AdapterInfo adapter, CancellationToken cancellationToken = default)
     {
         var escaped = Escape(adapter.InterfaceDescription);
+
+        // Get-NetAdapterRss throws "No MSFT_NetAdapterRssSettingData objects found" for any adapter that has no
+        // RSS object (Wi-Fi, Bluetooth PAN, tunnels, drivers without RSS). SilentlyContinue turns that into $null,
+        // so "unsupported" is a normal answer instead of an error that blanks every RSS row.
         var json = await _ps.RunAsync($@"
-$ErrorActionPreference='Stop'
-$r = Get-NetAdapterRss -InterfaceDescription '{escaped}' -ErrorAction Stop
+$ErrorActionPreference='SilentlyContinue'
+$r = @(Get-NetAdapterRss -InterfaceDescription '{escaped}' -ErrorAction SilentlyContinue) | Select-Object -First 1
+if ($null -eq $r) {{ '{{""Supported"":false}}' }} else {{
 @{{
+  Supported = $true
   Enabled = [bool]$r.Enabled
-  NumberOfReceiveQueues = [int]$r.NumberOfReceiveQueues
-  Profile = [string]$r.Profile
-  BaseProcessorNumber = [int]$r.BaseProcessorNumber
+  NumberOfReceiveQueues = if ($null -eq $r.NumberOfReceiveQueues) {{ $null }} else {{ [int]$r.NumberOfReceiveQueues }}
+  Profile = if ($null -eq $r.Profile) {{ $null }} else {{ [string]$r.Profile }}
+  BaseProcessorNumber = if ($null -eq $r.BaseProcessorNumber) {{ $null }} else {{ [int]$r.BaseProcessorNumber }}
   MaxProcessorNumber = if ($null -eq $r.MaxProcessorNumber) {{ $null }} else {{ [int]$r.MaxProcessorNumber }}
   MaxProcessors = if ($null -eq $r.MaxProcessors) {{ $null }} else {{ [int]$r.MaxProcessors }}
-}} | ConvertTo-Json -Compress
+}} | ConvertTo-Json -Compress }}
 ", cancellationToken);
 
         using var doc = JsonDocument.Parse(json);
         var root = doc.RootElement;
+        var supported = !(root.TryGetProperty("Supported", out var sup) && sup.ValueKind == JsonValueKind.False);
+        if (!supported)
+            return ReadFromRegistry(adapter);
+
         return new RssSettings
         {
-            Enabled = root.TryGetProperty("Enabled", out var e) && e.ValueKind is JsonValueKind.True or JsonValueKind.False
+            Supported = true,
+            Source = "cmdlet",
+            Enabled = root.TryGetProperty("Enabled", out var e) && (e.ValueKind is JsonValueKind.True or JsonValueKind.False)
                 ? e.GetBoolean()
                 : null,
-            NumberOfReceiveQueues = root.TryGetProperty("NumberOfReceiveQueues", out var q) && q.TryGetInt32(out var qi) ? qi : null,
-            Profile = root.TryGetProperty("Profile", out var p) ? p.GetString() : null,
-            BaseProcessorNumber = root.TryGetProperty("BaseProcessorNumber", out var b) && b.TryGetInt32(out var bi) ? bi : null,
-            MaxProcessorNumber = root.TryGetProperty("MaxProcessorNumber", out var m) && m.ValueKind != JsonValueKind.Null && m.TryGetInt32(out var mi) ? mi : null,
-            MaxProcessors = root.TryGetProperty("MaxProcessors", out var mp) && mp.ValueKind != JsonValueKind.Null && mp.TryGetInt32(out var mpi) ? mpi : null
+            NumberOfReceiveQueues = GetInt(root, "NumberOfReceiveQueues"),
+            Profile = root.TryGetProperty("Profile", out var p) && p.ValueKind == JsonValueKind.String ? p.GetString() : null,
+            BaseProcessorNumber = GetInt(root, "BaseProcessorNumber"),
+            MaxProcessorNumber = GetInt(root, "MaxProcessorNumber"),
+            MaxProcessors = GetInt(root, "MaxProcessors")
         };
+    }
+
+    private static int? GetInt(JsonElement root, string name) =>
+        root.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetInt32(out var i) ? i : null;
+
+    /// <summary>
+    /// Windows has no RSS object for this adapter, so read what the driver itself stores under the adapter's class key
+    /// (the standardized *RSS keywords). A driver with none of them (e.g. Intel AX211 Wi-Fi) simply has RSS off.
+    /// </summary>
+    private RssSettings ReadFromRegistry(AdapterInfo adapter)
+    {
+        var result = new RssSettings { Supported = false, Source = "none", Enabled = false };
+        var key = adapter.ClassKeyPath;
+        if (string.IsNullOrWhiteSpace(key) || !_registry.KeyExists(key))
+            return result;
+
+        int? Int(string name) =>
+            _registry.ValueExists(key, name) && int.TryParse(_registry.GetValueAsString(key, name), out var v) ? v : null;
+
+        var rss = Int("*RSS");
+        var queues = Int("*NumRssQueues");
+        var profile = Int("*RSSProfile") ?? Int("*RssProfile");
+        var baseProc = Int("*RssBaseProcNumber");
+        var maxProc = Int("*MaxRssProcNumber") ?? Int("*RssMaxProcNumber");
+        var maxProcs = Int("*MaxRssProcessors");
+
+        if (rss is null && queues is null && profile is null && baseProc is null && maxProc is null && maxProcs is null)
+            return result;
+
+        result.Source = "registry";
+        result.Enabled = rss is null ? null : rss != 0;
+        result.NumberOfReceiveQueues = queues;
+        result.Profile = profile switch
+        {
+            1 => "Closest",
+            2 => "ClosestStatic",
+            3 => "NUMAStatic",
+            4 => "NUMA",
+            5 => "Conservative",
+            _ => null
+        };
+        result.BaseProcessorNumber = baseProc;
+        result.MaxProcessorNumber = maxProc;
+        result.MaxProcessors = maxProcs;
+        return result;
     }
 
     public async Task SetAsync(AdapterInfo adapter, RssSettings settings, CancellationToken cancellationToken = default)
     {
         var escaped = Escape(adapter.InterfaceDescription);
+
+        // Adapters Windows has no RSS object for cannot be changed with Set-NetAdapterRss.
+        var current = await GetAsync(adapter, cancellationToken);
+        if (current.Source != "cmdlet")
+        {
+            var wantsChange = settings.Enabled == true || settings.NumberOfReceiveQueues is not null ||
+                              !string.IsNullOrWhiteSpace(settings.Profile) || settings.BaseProcessorNumber is not null ||
+                              settings.MaxProcessorNumber is not null || settings.MaxProcessors is not null;
+            if (!wantsChange)
+                return; // "RSS: Disable" on an adapter that has no RSS is already true.
+            throw new InvalidOperationException(
+                "Windows has no RSS settings for this adapter (the driver does not expose RSS). Use \"Enable RSS Support\" first.");
+        }
+
         var args = new List<string> { $"-InterfaceDescription '{escaped}'" };
         if (settings.Enabled is not null) args.Add($"-Enabled:${settings.Enabled.Value.ToString().ToLowerInvariant()}");
         if (settings.NumberOfReceiveQueues is not null) args.Add($"-NumberOfReceiveQueues {settings.NumberOfReceiveQueues}");
-        if (!string.IsNullOrWhiteSpace(settings.Profile)) args.Add($"-Profile {settings.Profile}");
+        if (!string.IsNullOrWhiteSpace(settings.Profile) && !settings.Profile.StartsWith("Not set", StringComparison.OrdinalIgnoreCase)) args.Add($"-Profile {settings.Profile}");
         if (settings.BaseProcessorNumber is not null) args.Add($"-BaseProcessorNumber {settings.BaseProcessorNumber}");
         if (settings.MaxProcessorNumber is not null) args.Add($"-MaxProcessorNumber {settings.MaxProcessorNumber}");
         if (settings.MaxProcessors is not null) args.Add($"-MaxProcessors {settings.MaxProcessors}");

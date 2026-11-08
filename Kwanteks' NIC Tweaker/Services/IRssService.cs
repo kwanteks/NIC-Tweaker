@@ -4,6 +4,15 @@ namespace Kwanteks.NicTweaker.Services;
 
 public sealed class RssSettings
 {
+    /// <summary>
+    /// False when Windows has no RSS object for the adapter (Wi-Fi, virtual NICs, drivers without RSS).
+    /// Get-NetAdapterRss throws for those; that is "not supported", not a read failure.
+    /// </summary>
+    public bool Supported { get; set; } = true;
+
+    /// <summary>Where the values came from: "cmdlet", "registry" or "none".</summary>
+    public string Source { get; set; } = "cmdlet";
+
     public bool? Enabled { get; set; }
     public int? NumberOfReceiveQueues { get; set; }
     public string? Profile { get; set; }

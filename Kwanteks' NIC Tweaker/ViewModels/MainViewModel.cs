@@ -276,8 +276,8 @@ public partial class MainViewModel : ObservableObject
         try
         {
             var rss = await _rss.GetAsync(adapter, token);
-            RssStatusText = rss.Enabled is true ? "Enabled" : rss.Enabled is false ? "Disabled" : "Unknown";
-            RssSupportNeeded = rss.Enabled is null;
+            RssStatusText = rss.Enabled is true ? "Enabled" : "Disabled";
+            RssSupportNeeded = rss.Source != "cmdlet";
         }
         catch (Exception ex)
         {

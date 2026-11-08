@@ -62,6 +62,8 @@ public sealed class TweakDefinition
     public RestartRequirement RequiresRestart { get; init; } = RestartRequirement.None;
     public bool AllowFreeText { get; init; }
     public bool IsReadOnly { get; init; }
+    /// <summary>Plain Windows value in the adapter key that no driver declares under Ndi\Params; a missing value reads "Not set", never "N/A".</summary>
+    public bool NotDriverDeclared { get; init; }
     public string? NetIpProperty { get; init; }
     public string? OffloadProperty { get; init; }
     public string? RssProperty { get; init; }
