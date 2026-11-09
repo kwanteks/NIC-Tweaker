@@ -19,14 +19,15 @@ public sealed class RssService : IRssService
 
     public async Task<RssSettings> GetAsync(AdapterInfo adapter, CancellationToken cancellationToken = default)
     {
-        var escaped = Escape(adapter.InterfaceDescription);
+        // Alias is unique per interface; two identical NICs share a description.
+        var escaped = Escape(adapter.InterfaceAlias);
 
         // Get-NetAdapterRss throws "No MSFT_NetAdapterRssSettingData objects found" for any adapter that has no
         // RSS object (Wi-Fi, Bluetooth PAN, tunnels, drivers without RSS). SilentlyContinue turns that into $null,
         // so "unsupported" is a normal answer instead of an error that blanks every RSS row.
         var json = await _ps.RunAsync($@"
 $ErrorActionPreference='SilentlyContinue'
-$r = @(Get-NetAdapterRss -InterfaceDescription '{escaped}' -ErrorAction SilentlyContinue) | Select-Object -First 1
+$r = @(Get-NetAdapterRss -Name '{escaped}' -ErrorAction SilentlyContinue) | Select-Object -First 1
 if ($null -eq $r) {{ '{{""Supported"":false}}' }} else {{
 @{{
   Supported = $true
@@ -107,7 +108,7 @@ if ($null -eq $r) {{ '{{""Supported"":false}}' }} else {{
 
     public async Task SetAsync(AdapterInfo adapter, RssSettings settings, CancellationToken cancellationToken = default)
     {
-        var escaped = Escape(adapter.InterfaceDescription);
+        var escaped = Escape(adapter.InterfaceAlias);
 
         // Adapters Windows has no RSS object for cannot be changed with Set-NetAdapterRss.
         var current = await GetAsync(adapter, cancellationToken);
@@ -122,7 +123,7 @@ if ($null -eq $r) {{ '{{""Supported"":false}}' }} else {{
                 "Windows has no RSS settings for this adapter (the driver does not expose RSS). Use \"Enable RSS Support\" first.");
         }
 
-        var args = new List<string> { $"-InterfaceDescription '{escaped}'" };
+        var args = new List<string> { $"-Name '{escaped}'" };
         if (settings.Enabled is not null) args.Add($"-Enabled:${settings.Enabled.Value.ToString().ToLowerInvariant()}");
         if (settings.NumberOfReceiveQueues is not null) args.Add($"-NumberOfReceiveQueues {settings.NumberOfReceiveQueues}");
         if (!string.IsNullOrWhiteSpace(settings.Profile) && !settings.Profile.StartsWith("Not set", StringComparison.OrdinalIgnoreCase)) args.Add($"-Profile {settings.Profile}");

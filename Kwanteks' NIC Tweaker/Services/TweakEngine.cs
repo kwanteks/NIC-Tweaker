@@ -679,10 +679,10 @@ public sealed class TweakEngine : ITweakEngine
         AdapterInfo adapter,
         CancellationToken cancellationToken)
     {
-        var escaped = adapter.InterfaceDescription.Replace("'", "''");
+        var escaped = adapter.InterfaceAlias.Replace("'", "''");
         var json = await _ps.RunAsync($@"
 $ErrorActionPreference='Continue'
-Get-NetAdapterAdvancedProperty -InterfaceDescription '{escaped}' -AllProperties -ErrorAction SilentlyContinue |
+Get-NetAdapterAdvancedProperty -Name '{escaped}' -AllProperties -ErrorAction SilentlyContinue |
   Select-Object RegistryKeyword, DisplayValue, RegistryValue |
   ConvertTo-Json -Compress
 ", cancellationToken);

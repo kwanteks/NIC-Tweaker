@@ -24,6 +24,11 @@ public sealed class PowerShellBridge : IPowerShellBridge
             StandardErrorEncoding = Encoding.UTF8
         };
 
+        // A stuck cmdlet must not freeze the UI forever.
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(TimeSpan.FromMinutes(5));
+        var token = timeout.Token;
+
         using var process = new Process { StartInfo = psi, EnableRaisingEvents = true };
         var stdout = new StringBuilder();
         var stderr = new StringBuilder();
@@ -37,11 +42,20 @@ public sealed class PowerShellBridge : IPowerShellBridge
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
 
-        await process.StandardInput.WriteAsync(script.AsMemory(), cancellationToken);
-        await process.StandardInput.FlushAsync(cancellationToken);
-        process.StandardInput.Close();
+        try
+        {
+            await process.StandardInput.WriteAsync(script.AsMemory(), token);
+            await process.StandardInput.FlushAsync(token);
+            process.StandardInput.Close();
 
-        await process.WaitForExitAsync(cancellationToken);
+            await process.WaitForExitAsync(token);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            try { process.Kill(entireProcessTree: true); } catch { /* already gone */ }
+            _log.Error("PowerShell timed out after 5 minutes.");
+            throw new TimeoutException("PowerShell did not finish within 5 minutes.");
+        }
 
         var err = stderr.ToString().Trim();
         if (process.ExitCode != 0)

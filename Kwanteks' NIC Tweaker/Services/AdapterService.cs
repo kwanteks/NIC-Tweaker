@@ -87,15 +87,16 @@ public sealed class AdapterService : IAdapterService
 
             try
             {
-                var escaped = Escape(adapter.InterfaceDescription);
+                // Alias is unique per interface; two identical NICs share a description.
+                var escaped = Escape(adapter.InterfaceAlias);
                 var ndis = await _ps.RunAsync(
-                    $"$ErrorActionPreference='Stop'; (Get-NetAdapter -InterfaceDescription '{escaped}' | Select-Object -ExpandProperty NdisVersion)",
+                    $"$ErrorActionPreference='Stop'; (Get-NetAdapter -Name '{escaped}' | Select-Object -ExpandProperty NdisVersion)",
                     cancellationToken);
                 if (!string.IsNullOrWhiteSpace(ndis))
                     adapter.NdisVersion = ndis;
 
                 var status = await _ps.RunAsync(
-                    $"$ErrorActionPreference='Stop'; (Get-NetAdapter -InterfaceDescription '{escaped}' | Select-Object -ExpandProperty Status)",
+                    $"$ErrorActionPreference='Stop'; (Get-NetAdapter -Name '{escaped}' | Select-Object -ExpandProperty Status)",
                     cancellationToken);
                 if (!string.IsNullOrWhiteSpace(status))
                     adapter.Status = status;
@@ -127,10 +128,10 @@ public sealed class AdapterService : IAdapterService
         IProgress<string>? progress = null,
         CancellationToken cancellationToken = default)
     {
-        var escaped = Escape(adapter.InterfaceDescription);
+        var escaped = Escape(adapter.InterfaceAlias);
         progress?.Report("Restarting adapter…");
         await _ps.RunAsync(
-            $"$ErrorActionPreference='Stop'; Restart-NetAdapter -InterfaceDescription '{escaped}' -Confirm:$false",
+            $"$ErrorActionPreference='Stop'; Restart-NetAdapter -Name '{escaped}' -Confirm:$false",
             cancellationToken);
 
         const int maxAttempts = 30;
@@ -141,7 +142,7 @@ public sealed class AdapterService : IAdapterService
             try
             {
                 var status = await _ps.RunAsync(
-                    $"$ErrorActionPreference='Stop'; (Get-NetAdapter -InterfaceDescription '{escaped}' | Select-Object -ExpandProperty Status)",
+                    $"$ErrorActionPreference='Stop'; (Get-NetAdapter -Name '{escaped}' | Select-Object -ExpandProperty Status)",
                     cancellationToken);
                 if (string.Equals(status, "Up", StringComparison.OrdinalIgnoreCase))
                 {
