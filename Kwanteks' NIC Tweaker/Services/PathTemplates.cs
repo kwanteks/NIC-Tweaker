@@ -16,6 +16,12 @@ public static class PathTemplates
         if (string.IsNullOrWhiteSpace(template))
             return "";
 
+        // An unresolved placeholder would otherwise collapse to "\..." and resolve to a key at the hive root.
+        var needsAdapterPath = template.Contains(AdapterClassKey, StringComparison.Ordinal) && string.IsNullOrWhiteSpace(adapter?.ClassKeyPath);
+        var needsInterruptPath = template.Contains(InterruptBase, StringComparison.Ordinal) && string.IsNullOrWhiteSpace(adapter?.InterruptBasePath);
+        if (needsAdapterPath || needsInterruptPath)
+            throw new InvalidOperationException("Adapter path not resolved. Select an adapter first.");
+
         var path = template
             .Replace(AdapterClassKey, adapter?.ClassKeyPath ?? "", StringComparison.Ordinal)
             .Replace(InterruptBase, adapter?.InterruptBasePath ?? "", StringComparison.Ordinal);
