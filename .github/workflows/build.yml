@@ -15,5 +15,8 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
+      # Tests never load resources.pri, and PRI generation needs the VS AppxPackage tools that the
+      # runner does not have on the dotnet SDK path. Skipping it removes the Visual Studio dependency;
+      # build.ps1 still generates the real .pri for publish.
       - name: Test
-        run: dotnet test "Kwanteks' NIC Tweaker.Tests\Kwanteks' NIC Tweaker.Tests.csproj" -c Release -p:Platform=x64 --nologo
+        run: dotnet test "Kwanteks' NIC Tweaker.Tests\Kwanteks' NIC Tweaker.Tests.csproj" -c Release -p:Platform=x64 -p:AppxGeneratePriEnabled=false --nologo
