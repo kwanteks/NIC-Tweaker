@@ -302,7 +302,7 @@ public sealed class ConfigTransferService : IConfigTransferService
                 adapter,
                 desired,
                 addressFamily,
-                createBackup: false,
+                createBackup: true,
                 cancellationToken);
 
             foreach (var item in batch.Items)
