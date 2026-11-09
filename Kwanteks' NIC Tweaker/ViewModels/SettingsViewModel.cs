@@ -20,8 +20,7 @@ public partial class SettingsViewModel : ObservableObject
     public string DataPath { get; }
     public string AppVersion { get; }
 
-    /// <summary>Placeholder GitHub Releases URL — wire to the real repo when published.</summary>
-    public const string ReleasesUrl = "https://github.com/PLACEHOLDER/KwanteksNICTweaker/releases";
+    public const string ReleasesUrl = "https://github.com/kwanteks/NIC-Tweaker/releases";
 
     public SettingsViewModel(IStorageService storage, IRestorePointService restorePoints)
     {

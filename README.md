@@ -43,6 +43,7 @@ The app does **not** write into Program Files. Use **About → Open folder** in 
 
 - **Create Restore Point** uses Windows System Restore when System Protection is enabled.
 - Registry **Backup** snapshots (Backup → Backup now / Restore snapshot…) are stored under `Backups\` and restored from the app menu — not by double-clicking files.
+- Snapshots and **Revert last** cover **registry values only**. RSS, interface (`NetIPInterface`) and global offload settings are set through Windows cmdlets and are not part of a snapshot, so use a restore point when you change those.
 - Exported configs (`.nttweak`) use **Export Config / Import Config**; import always shows a preview (also `--import "file.nttweak"`).
 
 ## Build from source
@@ -65,4 +66,5 @@ Optional signing: `.\build.ps1 -Sign <cert-thumbprint>`
 ## Notes
 
 - Unpackaged (`WindowsPackageType=None`), self-contained, `win-x64`, `requireAdministrator`.
-- GitHub Releases URL in About is a placeholder until you set it.
+- Build needs the Windows App SDK / Visual Studio AppxPackage build tools for the WinUI PRI step; the csproj points at VS 2022/18 install paths when the plain .NET SDK cannot find them.
+- Bundled `intel.json` / `realtek.json` are **sample** presets, not vendor-recommended values. Edit the copies in `%ProgramData%\KwanteksNICTweaker\Presets` to make them useful.

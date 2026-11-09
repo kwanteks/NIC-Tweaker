@@ -622,14 +622,25 @@ public partial class MainViewModel : ObservableObject
             StatusIsError = true;
             return;
         }
-        using var doc = JsonDocument.Parse(File.ReadAllText(path));
-        if (!doc.RootElement.TryGetProperty("values", out var values)) return;
         var map = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
-        foreach (var p in values.EnumerateObject())
-            map[p.Name] = p.Value.GetString();
+        try
+        {
+            using var doc = JsonDocument.Parse(File.ReadAllText(path));
+            if (!doc.RootElement.TryGetProperty("values", out var values))
+                throw new InvalidOperationException("Preset has no \"values\" object.");
+            foreach (var p in values.EnumerateObject())
+                map[p.Name] = p.Value.ValueKind == JsonValueKind.String ? p.Value.GetString() : p.Value.ToString();
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Preset '{path}' could not be read: {ex.Message}";
+            StatusIsError = true;
+            return;
+        }
+
         foreach (var section in AllSections)
             section.ApplyPresetValues(map);
-        StatusMessage = $"Loaded {name} preset into UI (not written until Apply).";
+        StatusMessage = $"Loaded {name} sample preset ({map.Count} values) from {path}. Edit that file to fill in your own; nothing is written until Apply.";
         StatusIsError = false;
     }
 
