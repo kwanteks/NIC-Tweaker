@@ -63,6 +63,12 @@ Produces:
 Publish only: `.\build.ps1 -SkipInstaller`  
 Optional signing: `.\build.ps1 -Sign <cert-thumbprint>`
 
+Tests only (no installer, and no Visual Studio AppxPackage tooling needed — tests never read `.pri`):
+
+```powershell
+dotnet test "Kwanteks' NIC Tweaker.Tests\Kwanteks' NIC Tweaker.Tests.csproj" -c Release -p:Platform=x64 -p:AppxGeneratePriEnabled=false
+```
+
 ## Notes
 
 - Unpackaged (`WindowsPackageType=None`), self-contained, `win-x64`, `requireAdministrator`.
