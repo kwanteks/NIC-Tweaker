@@ -373,7 +373,9 @@ public partial class MainViewModel : ObservableObject
             DisableLmhosts = string.Equals(
                 _registry.GetValueAsString(@"HKLM\SYSTEM\CurrentControlSet\Services\NetBT\Parameters", "EnableLMHOSTS"),
                 "0", StringComparison.Ordinal);
-            DisableNetBios = false; // informational; NetBIOS binding is per-adapter
+            DisableNetBios = SelectedAdapter is not null && string.Equals(
+                _registry.GetValueAsString(NetBiosPath(SelectedAdapter), "NetbiosOptions"),
+                "2", StringComparison.Ordinal);
         }
         catch { /* ignore */ }
     }
@@ -568,14 +570,20 @@ public partial class MainViewModel : ObservableObject
         ulong mask = 0;
         foreach (var c in CpuAffinity.Where(c => c.IsChecked))
             mask |= 1UL << c.Index;
+        // Nothing ticked and nothing stored: don't invent an AssignmentSet of 0 on a plain Apply All.
+        if (mask == 0 && !_registry.ValueExists(path, "AssignmentSet")) return;
         _registry.EnsureKey(path);
         _registry.SetValue(path, "AssignmentSet", unchecked((int)mask), RegistryValueKind.DWord);
         _log.Info($"Affinity AssignmentSet = 0x{mask:X}");
     });
 
+    private static string NetBiosPath(AdapterInfo adapter) =>
+        $@"HKLM\SYSTEM\CurrentControlSet\Services\NetBT\Parameters\Interfaces\Tcpip_{{{adapter.InterfaceGuid}}}";
+
     [RelayCommand]
     private async Task ApplyNetBtTcpAsync()
     {
+        var adapter = SelectedAdapter;
         await Task.Run(() =>
         {
             try
@@ -584,6 +592,17 @@ public partial class MainViewModel : ObservableObject
                     _registry.SetValue(@"HKLM\SYSTEM\CurrentControlSet\Services\NetBT", "Start", 4, RegistryValueKind.DWord);
                 _registry.SetValue(@"HKLM\SYSTEM\CurrentControlSet\Services\NetBT\Parameters", "EnableLMHOSTS",
                     DisableLmhosts ? 0 : 1, RegistryValueKind.DWord);
+
+                // NetBIOS binding is per-adapter; only write when the checkbox changes it (2 = disabled).
+                if (adapter is not null)
+                {
+                    var path = NetBiosPath(adapter);
+                    var current = _registry.GetValueAsString(path, "NetbiosOptions");
+                    if (DisableNetBios && current != "2")
+                        _registry.SetValue(path, "NetbiosOptions", 2, RegistryValueKind.DWord);
+                    else if (!DisableNetBios && current == "2")
+                        _registry.SetValue(path, "NetbiosOptions", 0, RegistryValueKind.DWord);
+                }
                 _log.Info("Applied NetBT / LMHOSTS settings.");
             }
             catch (Exception ex) { _log.Error($"NetBT apply: {ex.Message}"); throw; }
