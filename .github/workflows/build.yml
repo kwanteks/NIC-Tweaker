@@ -15,8 +15,19 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      # Tests never load resources.pri, and PRI generation needs the VS AppxPackage tools that the
-      # runner does not have on the dotnet SDK path. Skipping it removes the Visual Studio dependency;
-      # build.ps1 still generates the real .pri for publish.
+      # WinUI's PRI and output-group targets load Microsoft.Build.AppxPackage.dll from Visual Studio,
+      # but the runner resolves it under the dotnet SDK path, which has no AppxPackage tools.
+      # Find the Visual Studio copy and hand it to MSBuild (env vars become MSBuild properties).
+      - name: Locate Visual Studio AppxPackage tasks
+        shell: pwsh
+        run: |
+          dotnet --version
+          $dll = Get-ChildItem 'C:\Program Files\Microsoft Visual Studio' -Recurse -Filter Microsoft.Build.AppxPackage.dll -ErrorAction SilentlyContinue |
+            Where-Object { Test-Path (Join-Path $_.DirectoryName 'Microsoft.Build.Packaging.Pri.Tasks.dll') } |
+            Select-Object -First 1
+          if (-not $dll) { throw 'Microsoft.Build.AppxPackage.dll not found: this runner cannot build WinUI.' }
+          "AppxMSBuildToolsPath=$($dll.DirectoryName)\" | Out-File $env:GITHUB_ENV -Append -Encoding ascii
+          "Using $($dll.DirectoryName)"
+
       - name: Test
-        run: dotnet test "Kwanteks' NIC Tweaker.Tests\Kwanteks' NIC Tweaker.Tests.csproj" -c Release -p:Platform=x64 -p:AppxGeneratePriEnabled=false --nologo
+        run: dotnet test "Kwanteks' NIC Tweaker.Tests\Kwanteks' NIC Tweaker.Tests.csproj" -c Release -p:Platform=x64 --nologo
