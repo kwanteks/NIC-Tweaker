@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Kwanteks.NicTweaker.Models;
 using Kwanteks.NicTweaker.Services;
+using Kwanteks.NicTweaker.Views;
 using Microsoft.Win32;
 using Windows.ApplicationModel.DataTransfer;
 
@@ -293,7 +294,40 @@ public partial class MainViewModel : ObservableObject
             await section.RefreshAsync(token);
     }
 
-    private Task<bool> BeforeApplyAsync() => RestorePoint.PrepareBeforeApplyAsync(outerOwnsBusy: IsBusy);
+    private async Task<bool> BeforeApplyAsync(int changeCount)
+    {
+        if (changeCount > 1)
+        {
+            var root = App.MainAppWindow?.Content?.XamlRoot;
+            if (root is not null)
+            {
+                var proceed = await SafetyDialogs.ConfirmBulkApplyAsync(
+                    root,
+                    $"About to write {changeCount} settings at once.");
+                if (!proceed)
+                {
+                    StatusMessage = "Bulk apply cancelled — change one setting (or one section) at a time, then Apply.";
+                    StatusIsError = false;
+                    return false;
+                }
+            }
+        }
+
+        return await RestorePoint.PrepareBeforeApplyAsync(outerOwnsBusy: IsBusy);
+    }
+
+    public async Task EnsureSafetyWarningAcceptedAsync()
+    {
+        if (Settings.FirstLaunchWarningShown) return;
+        var root = App.MainAppWindow?.Content?.XamlRoot;
+        if (root is null) return;
+        // Required gate — keep prompting until they check "I understand" and continue.
+        while (!Settings.FirstLaunchWarningShown)
+        {
+            if (await SafetyDialogs.ShowFirstLaunchAsync(root))
+                DismissFirstLaunchWarning();
+        }
+    }
 
     private async Task EnsureOriginalBackupAsync()
     {
@@ -477,7 +511,8 @@ public partial class MainViewModel : ObservableObject
         BeginBusy("Applying all settings…");
         try
         {
-            if (!await BeforeApplyAsync())
+            var bulkCount = AllSections.Sum(s => s.Items.Count(i => i.IsEditorEnabled));
+            if (!await BeforeApplyAsync(Math.Max(bulkCount, 2)))
             {
                 StatusMessage = "Apply All cancelled.";
                 StatusIsError = false;
@@ -496,6 +531,7 @@ public partial class MainViewModel : ObservableObject
                 }
                 var desired = section.Items.Where(i => i.IsEditorEnabled)
                     .ToDictionary(i => i.Definition.Id, i => i.DesiredValue);
+                // Restore-point / bulk confirm already done above — skip re-prompt per section.
                 var result = await _engine.ApplyTweaksAsync(
                     section.Items.Select(i => i.Definition), SelectedAdapter, desired, AddressFamily);
                 failures += result.Items.Count(i => !i.Success && !i.Skipped);
@@ -638,10 +674,37 @@ public partial class MainViewModel : ObservableObject
             return;
         }
 
-        foreach (var section in AllSections)
-            section.ApplyPresetValues(map);
-        StatusMessage = $"Loaded {name} sample preset ({map.Count} values) from {path}. Edit that file to fill in your own; nothing is written until Apply.";
-        StatusIsError = false;
+        var applied = 0;
+        var unsupported = new List<string>();
+        var unknown = new List<string>();
+        var itemsById = AllSections.SelectMany(s => s.Items)
+            .ToDictionary(i => i.Definition.Id, i => i, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var (id, value) in map)
+        {
+            if (!itemsById.TryGetValue(id, out var item))
+            {
+                unknown.Add(id);
+                continue;
+            }
+            if (item.IsNotAvailable || !item.IsEditorEnabled)
+            {
+                unsupported.Add(item.Label);
+                continue;
+            }
+            if (string.IsNullOrWhiteSpace(value)) continue;
+            item.EnsureOptionPublic(value);
+            item.SelectedDisplay = value;
+            applied++;
+        }
+
+        var parts = new List<string> { $"Loaded {name} preset: {applied} value(s) into the UI (not written until Apply)." };
+        if (unsupported.Count > 0)
+            parts.Add($"Not supported by this driver: {string.Join(", ", unsupported)}.");
+        if (unknown.Count > 0)
+            parts.Add($"Unknown preset keys: {string.Join(", ", unknown)}.");
+        StatusMessage = string.Join(" ", parts);
+        StatusIsError = unsupported.Count > 0 || unknown.Count > 0;
     }
 
     [RelayCommand]

@@ -182,6 +182,15 @@ public partial class ConfigTransferViewModel : ObservableObject
             return;
         }
 
+        if (choice.Selected.Count > 1
+            && !await SafetyDialogs.ConfirmBulkApplyAsync(
+                root,
+                $"About to write {choice.Selected.Count} imported settings at once."))
+        {
+            _setStatus("Import apply cancelled — apply one at a time from the UI if preferred.", false);
+            return;
+        }
+
         // Restore point first
         _beginBusy("Creating restore point…");
         try

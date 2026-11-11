@@ -61,9 +61,9 @@ public static class TweakCatalog
             ]));
         list.Add(Rss("rss.baseproc", "BaseProcessor", "BaseProcessorNumber", "First processor used for RSS.", RiskLevel.Medium,
             options: Enumerable.Range(0, 16).Select(i => new TweakOption(i.ToString(), i.ToString())).ToArray()));
-        list.Add(Rss("rss.maxproc", "MaxProcessor", "MaxProcessorNumber", "Highest processor number for RSS.", RiskLevel.Medium,
+        list.Add(Rss("rss.maxproc", "MaxProcessorNumber", "MaxProcessorNumber", "Highest processor number for RSS (not the same as MaxProcessors).", RiskLevel.Medium,
             options: Enumerable.Range(0, 16).Select(i => new TweakOption(i.ToString(), i.ToString())).ToArray()));
-        list.Add(Rss("rss.maxprocs", "MaxProcessors", "MaxProcessors", "Maximum number of processors for RSS.", RiskLevel.Medium,
+        list.Add(Rss("rss.maxprocs", "MaxProcessors", "MaxProcessors", "Maximum count of processors for RSS.", RiskLevel.Medium,
             options: Enumerable.Range(0, 16).Select(i => new TweakOption(i.ToString(), i.ToString())).ToArray()));
 
         list.Add(Reg(TweakSection.RssSettings, "rss.disableportscaling", "DisablePortScaling",
@@ -74,8 +74,8 @@ public static class TweakCatalog
             "Enables many-core scaling for RSS.", RiskLevel.Medium, RestartRequirement.Adapter, supportsDelete: true, notDriverDeclared: true));
 
         // Global
-        list.Add(Offload("global.rss", "ReceiveSideScaling", "ReceiveSideScaling", "OS-wide RSS."));
-        list.Add(Offload("global.rsc", "ReceiveSegmentCoalescing", "ReceiveSegmentCoalescing", "OS-wide RSC."));
+        list.Add(Offload("global.rss", "ReceiveSideScaling (OS)", "ReceiveSideScaling", "OS-wide RSS (not the per-adapter RSS box)."));
+        list.Add(Offload("global.rsc", "ReceiveSegmentCoalescing (OS)", "ReceiveSegmentCoalescing", "OS-wide RSC (adapter *RscIPv4/v6 live under Buffers)."));
         list.Add(Offload("global.chimney", "Chimney", "Chimney", "TCP Chimney offload (legacy)."));
         list.Add(Offload("global.taskoffload", "TaskOffload", "TaskOffload", "OS-wide task offload."));
         list.Add(new TweakDefinition
@@ -161,9 +161,6 @@ public static class TweakCatalog
         Adv("adv.lsov2v6", "LsoV2IPv6", "*LsoV2IPv6", TweakValueType.String, OffOn, "Large Send Offload v2 IPv6.");
         Adv("adv.usov4", "UsoIPv4", "*UsoIPv4", TweakValueType.String, OffOn, "UDP Segmentation Offload IPv4.", del: true);
         Adv("adv.usov6", "UsoIPv6", "*UsoIPv6", TweakValueType.String, OffOn, "UDP Segmentation Offload IPv6.", del: true);
-        Adv("adv.pmarp", "PMARPOffload", "*PMARPOffload", TweakValueType.String, OffOn, "ARP offload for power management.");
-        Adv("adv.pmns", "PMNSOffload", "*PMNSOffload", TweakValueType.String, OffOn, "NS offload for power management.");
-        Adv("adv.pmwifi", "PMWiFiRekeyOffload", "*PMWiFiRekeyOffload", TweakValueType.String, OffOn, "Wi-Fi rekey offload.", del: true);
         Adv("adv.encap", "EncapsulatedPacketTaskOffload", "*EncapsulatedPacketTaskOffload", TweakValueType.String, OffOn, "Encapsulated packet task offload.", del: true);
         Adv("adv.encap.nvgre", "EncapsulatedPacketTaskOffloadNvgre", "*EncapsulatedPacketTaskOffloadNvgre", TweakValueType.String, OffOn, "NVGRE encapsulated offload.", del: true);
         Adv("adv.encap.vxlan", "EncapsulatedPacketTaskOffloadVxlan", "*EncapsulatedPacketTaskOffloadVxlan", TweakValueType.String, OffOn, "VXLAN encapsulated offload.", del: true);
@@ -195,10 +192,24 @@ public static class TweakCatalog
         Pow("pow.reduce", "ReduceSpeedOnPowerDown", "ReduceSpeedOnPowerDown", TweakValueType.DWord, DisabledEnabled, "Reduce link speed on power down.");
         Pow("pow.wake.magic", "WakeOnMagicPacket", "*WakeOnMagicPacket", TweakValueType.String, DisabledEnabled, "Wake on magic packet.");
         Pow("pow.wake.pattern", "WakeOnPattern", "*WakeOnPattern", TweakValueType.String, DisabledEnabled, "Wake on pattern.");
+        // PM* offloads are wake/power-path features (were wrongly listed under Offload Settings).
+        Pow("pow.pmarp", "PMARPOffload", "*PMARPOffload", TweakValueType.String, OffOn, "ARP offload for power management.");
+        Pow("pow.pmns", "PMNSOffload", "*PMNSOffload", TweakValueType.String, OffOn, "NS offload for power management.");
+        Pow("pow.pmwifi", "PMWiFiRekeyOffload", "*PMWiFiRekeyOffload", TweakValueType.String, OffOn, "Wi-Fi rekey offload.");
         Pow("pow.eee", "EEE", "*EEE", TweakValueType.String, DisabledEnabled, "Energy Efficient Ethernet.");
         Pow("pow.eee.link", "EEELinkAdvertisement", "*EEELinkAdvertisement", TweakValueType.String, DisabledEnabled, "EEE link advertisement.");
         Pow("pow.sleep.disconnect", "DeviceSleepOnDisconnect", "*DeviceSleepOnDisconnect", TweakValueType.String, DisabledEnabled, "Sleep on media disconnect.");
         Pow("pow.green", "EnableGreenEthernet", "EnableGreenEthernet", TweakValueType.DWord, DisabledEnabled, "Green Ethernet.");
+        // Vendor power-saving keywords (exact ValueName; unsupported drivers show N/A)
+        Pow("pow.advancedeee", "AdvancedEEE", "AdvancedEEE", TweakValueType.String, DisabledEnabled, "Realtek Advanced EEE.");
+        Pow("pow.powersaving", "PowerSavingMode", "PowerSavingMode", TweakValueType.String, DisabledEnabled, "Realtek power saving mode.");
+        Pow("pow.gigalite", "GigaLite", "GigaLite", TweakValueType.String, DisabledEnabled, "Realtek GigaLite.");
+        Pow("pow.autodisablegigabit", "AutoDisableGigabit", "AutoDisableGigabit", TweakValueType.String, DisabledEnabled, "Realtek auto-disable Gigabit.");
+        Pow("pow.s5wol", "S5WakeOnLan", "S5WakeOnLan", TweakValueType.String, DisabledEnabled, "Wake on LAN from S5 / shutdown.");
+        Pow("pow.wolshutdownspeed", "WolShutdownLinkSpeed", "WolShutdownLinkSpeed", TweakValueType.String,
+            [new("0", "0"), new("1", "1"), new("2", "2")], "Link speed used for WOL after shutdown.");
+        Pow("pow.ulpmode", "ULPMode", "ULPMode", TweakValueType.String, DisabledEnabled, "Intel Ultra Low Power mode.");
+        Pow("pow.sips", "SipsEnabled", "SipsEnabled", TweakValueType.String, DisabledEnabled, "Intel System Idle Power Saver.");
 
         // Extra global TCP/NetBT registry knobs (Apply NetBT / TCP button)
         list.Add(Reg(TweakSection.GlobalSettings, "global.congestion", "CongestionProvider",

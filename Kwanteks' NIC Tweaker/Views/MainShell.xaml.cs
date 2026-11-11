@@ -31,6 +31,7 @@ public sealed partial class MainShell : UserControl
             await ViewModel.InitializeAsync();
             App.SetWindowOpacity(ViewModel.OpacityReduced);
             ApplyColumnLayout(App.MainAppWindow?.Bounds.Width ?? ActualWidth);
+            await ViewModel.EnsureSafetyWarningAcceptedAsync();
 
             // Wait for first adapter load so import preview has live values.
             for (var i = 0; i < 80 && ViewModel.IsBusy; i++)
@@ -168,9 +169,6 @@ public sealed partial class MainShell : UserControl
 
     private void ToggleLog_Click(object sender, RoutedEventArgs e) =>
         ViewModel.LogExpanded = !ViewModel.LogExpanded;
-
-    private void DismissWarning_Click(object sender, RoutedEventArgs e) =>
-        ViewModel.DismissFirstLaunchWarningCommand.Execute(null);
 
     private async void ResetSection_Click(object sender, RoutedEventArgs e)
     {

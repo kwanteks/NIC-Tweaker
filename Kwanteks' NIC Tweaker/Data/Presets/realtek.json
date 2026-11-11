@@ -1,10 +1,13 @@
 {
   "name": "Realtek",
-  "description": "Placeholder Realtek preset — edit this file; values only fill the UI until Apply.",
+  "description": "Disables Realtek power-saving features (Green Ethernet, EEE, GigaLite, WOL-from-shutdown). May increase power draw. Values fill the UI only until Apply; unsupported keywords are skipped.",
   "values": {
-    "rss.status": "Enable",
-    "rss.profile": "Closest",
-    "adv.intmod": "0 - Disabled",
-    "adv.flow": "0 - Disabled"
+    "pow.green": "Disabled",
+    "pow.advancedeee": "Disabled",
+    "pow.powersaving": "Disabled",
+    "pow.gigalite": "Disabled",
+    "pow.autodisablegigabit": "Disabled",
+    "pow.s5wol": "Disabled",
+    "pow.wolshutdownspeed": "2"
   }
 }

@@ -73,4 +73,4 @@ dotnet test "Kwanteks' NIC Tweaker.Tests\Kwanteks' NIC Tweaker.Tests.csproj" -c 
 
 - Unpackaged (`WindowsPackageType=None`), self-contained, `win-x64`, `requireAdministrator`.
 - Build needs the Windows App SDK / Visual Studio AppxPackage build tools for the WinUI PRI step; the csproj points at VS 2022/18 install paths when the plain .NET SDK cannot find them.
-- Bundled `intel.json` / `realtek.json` are **sample** presets, not vendor-recommended values. Edit the copies in `%ProgramData%\KwanteksNICTweaker\Presets` to make them useful.
+- Bundled `intel.json` / `realtek.json` disable common vendor power-saving features (may increase power draw). Unsupported keywords are skipped per adapter. Edit copies under `%ProgramData%\KwanteksNICTweaker\Presets` if you customize them (vendor files are refreshed from the install bundle on launch).

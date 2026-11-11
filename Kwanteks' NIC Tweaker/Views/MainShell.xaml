@@ -37,15 +37,12 @@
                 </StackPanel>
             </Grid>
 
-            <Grid Visibility="{x:Bind ViewModel.ShowFirstLaunchWarning, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" FontSize="11" Foreground="{ThemeResource TweakerMutedTextBrush}"
-                           Text="Admin: edits HKLM / adapter settings. Backup first." TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-                <HyperlinkButton Grid.Column="1" Content="Dismiss" FontSize="11" Padding="6,0" Click="DismissWarning_Click" />
-            </Grid>
+            <InfoBar IsOpen="True"
+                     IsClosable="False"
+                     Severity="Warning"
+                     Title="Disclaimer"
+                     Message="Changing NIC settings can break connectivity. Do not mass-apply guides. Apply in small batches, test after each change, and restore previous values if something breaks. Keep an offline driver backup."
+                     Margin="0,0,0,2" />
             <StackPanel Orientation="Horizontal" Spacing="8">
                 <TextBlock Text="Adapter:" Style="{StaticResource TweakerLabelStyle}" VerticalAlignment="Center" />
                 <ComboBox Width="310" MinHeight="28" FontSize="12"
@@ -155,10 +152,10 @@
                 </Grid.ColumnDefinitions>
                 <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
                     <TextBlock Text="Presets:" Style="{StaticResource TweakerLabelStyle}" VerticalAlignment="Center" />
-                    <Button Content="Intel (sample)" Style="{StaticResource TweakerButtonStyle}" Command="{x:Bind ViewModel.LoadPresetCommand}" CommandParameter="Intel" ToolTipService.ToolTip="Ships with a few example values. Edit intel.json in the app data Presets folder to add your own." />
-                    <Button Content="Realtek (sample)" Style="{StaticResource TweakerButtonStyle}" Command="{x:Bind ViewModel.LoadPresetCommand}" CommandParameter="Realtek" ToolTipService.ToolTip="Ships with a few example values. Edit realtek.json in the app data Presets folder to add your own." />
+                    <Button Content="Intel" Style="{StaticResource TweakerButtonStyle}" Command="{x:Bind ViewModel.LoadPresetCommand}" CommandParameter="Intel" ToolTipService.ToolTip="Loads Intel power-saving preset into the UI. Unsupported keywords are skipped. Nothing is written until Apply." />
+                    <Button Content="Realtek" Style="{StaticResource TweakerButtonStyle}" Command="{x:Bind ViewModel.LoadPresetCommand}" CommandParameter="Realtek" ToolTipService.ToolTip="Loads Realtek power-saving preset into the UI. Unsupported keywords are skipped. Nothing is written until Apply." />
                     <TextBlock FontSize="11" FontStyle="Italic" Foreground="{ThemeResource TweakerMutedTextBrush}" VerticalAlignment="Center"
-                               Text="Kwanteks' NIC Tweaker — remake of st1icky's network adapter tweaker. Presets fill the UI only until Apply." />
+                               Text="Presets fill the UI only until Apply. Backup / Revert last restores prior registry values." />
                 </StackPanel>
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
                     <Button Content="Backup" Style="{StaticResource TweakerButtonStyle}">
@@ -239,7 +236,7 @@
                         </controls:GroupBox.ContentHost>
                     </controls:GroupBox>
 
-                    <controls:GroupBox Header="Interrupt Settings">
+                    <controls:GroupBox Header="Interrupt Affinity (MSI)">
                         <controls:GroupBox.ContentHost>
                             <StackPanel>
                                 <ItemsControl ItemsSource="{x:Bind ViewModel.InterruptSection.Items}">
@@ -347,7 +344,7 @@
                         </controls:GroupBox.ContentHost>
                     </controls:GroupBox>
 
-                    <controls:GroupBox Header="Buffers / Interrupts / Coalescing">
+                    <controls:GroupBox Header="Buffers / NIC Interrupts / Coalescing">
                         <controls:GroupBox.ContentHost>
                             <StackPanel>
                                 <ItemsControl ItemsSource="{x:Bind ViewModel.BuffersSection.Items}">

@@ -11,7 +11,7 @@ public partial class SectionViewModel : ObservableObject
     private readonly ITweakEngine _engine;
     private readonly Func<AdapterInfo?> _getAdapter;
     private readonly Func<string> _getAddressFamily;
-    private readonly Func<Task<bool>> _beforeApply;
+    private readonly Func<int, Task<bool>> _beforeApply;
     private readonly Action<string, bool> _notify;
     private readonly Action<RestartRequirement> _onRestart;
     private readonly IReadOnlyList<TweakDefinition> _defs;
@@ -27,7 +27,7 @@ public partial class SectionViewModel : ObservableObject
         ITweakEngine engine,
         Func<AdapterInfo?> getAdapter,
         Func<string> getAddressFamily,
-        Func<Task<bool>> beforeApply,
+        Func<int, Task<bool>> beforeApply,
         Action<string, bool> notify,
         Action<RestartRequirement> onRestart)
     {
@@ -82,7 +82,7 @@ public partial class SectionViewModel : ObservableObject
         IsBusy = true;
         try
         {
-            if (!await _beforeApply())
+            if (!await _beforeApply(writable.Count))
             {
                 _notify($"{Title}: cancelled.", false);
                 return;

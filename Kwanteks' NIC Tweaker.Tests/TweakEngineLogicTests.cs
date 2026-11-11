@@ -106,6 +106,22 @@ public class TweakEngineLogicTests
     }
 
     [Fact]
+    public void UiGroups_do_not_duplicate_tweak_ids()
+    {
+        var groups = new IReadOnlyList<TweakDefinition>[]
+        {
+            UiGroups.RssSettings, UiGroups.RssGlobal, UiGroups.Interrupt, UiGroups.PowerSaving,
+            UiGroups.GlobalSettings, UiGroups.InterfaceSettings, UiGroups.AdapterFeatures,
+            UiGroups.BuffersCoalesce, UiGroups.OffloadSettings, UiGroups.AfdTweaks
+        };
+        var ids = groups.SelectMany(g => g.Select(t => t.Id)).ToList();
+        Assert.Equal(ids.Count, ids.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+        Assert.Contains(UiGroups.PowerSaving, t => t.Id == "pow.pmarp");
+        Assert.DoesNotContain(UiGroups.OffloadSettings, t => t.Id.StartsWith("pow.pm", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(UiGroups.OffloadSettings, t => t.Id is "adv.pmarp" or "adv.pmns" or "adv.pmwifi");
+    }
+
+    [Fact]
     public void BackupSnapshot_roundtrips_json()
     {
         var snap = new BackupSnapshot

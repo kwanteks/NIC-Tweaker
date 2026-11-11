@@ -1,10 +1,11 @@
 {
   "name": "Intel",
-  "description": "Placeholder Intel preset — edit this file; values only fill the UI until Apply.",
+  "description": "Disables Intel power-saving features (PME, ULP, SIPS, reduce-speed-on-power-down) and sets ITR to Disabled. May increase power draw. Values fill the UI only until Apply; unsupported keywords are skipped.",
   "values": {
-    "rss.status": "Enable",
-    "rss.profile": "NUMAStatic",
-    "adv.intmod": "0 - Disabled",
-    "adv.flow": "0 - Disabled"
+    "pow.pme": "Disabled",
+    "pow.ulpmode": "Disabled",
+    "pow.sips": "Disabled",
+    "pow.reduce": "Disabled",
+    "adv.itr": "0 - Disabled"
   }
 }

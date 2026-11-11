@@ -79,12 +79,14 @@ public static class AppPaths
         if (!Directory.Exists(bundled)) return;
         foreach (var file in Directory.EnumerateFiles(bundled, "*.json"))
         {
-            var dest = Path.Combine(Presets, Path.GetFileName(file));
-            if (!File.Exists(dest))
-            {
-                try { File.Copy(file, dest); }
-                catch { /* ignore */ }
-            }
+            var name = Path.GetFileName(file);
+            var dest = Path.Combine(Presets, name);
+            // Ship updates for vendor presets; leave other user JSON alone.
+            var overwriteVendor = name.Equals("intel.json", StringComparison.OrdinalIgnoreCase)
+                                  || name.Equals("realtek.json", StringComparison.OrdinalIgnoreCase);
+            if (File.Exists(dest) && !overwriteVendor) continue;
+            try { File.Copy(file, dest, overwrite: overwriteVendor); }
+            catch { /* ignore */ }
         }
     }
 
