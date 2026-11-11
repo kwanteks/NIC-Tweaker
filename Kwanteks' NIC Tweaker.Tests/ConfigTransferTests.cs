@@ -137,6 +137,34 @@ public class ConfigTransferTests
     }
 
     [Fact]
+    public async Task Export_windows_defaults_save_reload_roundtrip()
+    {
+        var (sut, adapters) = CreateServices();
+        var list = await adapters.GetAdaptersAsync();
+        if (list.Count == 0) return;
+
+        var adapter = list[0];
+        await adapters.EnrichPathsAsync(adapter);
+
+        // Defaults-only skips live ReadTweaks (still captures adapter meta).
+        var cfg = await sut.BuildExportAsync(adapter, "IPv4", windowsDefaultsOnly: true);
+        Assert.Equal(ConfigFormat.Name, cfg.Format);
+        Assert.True(cfg.Tweaks.Count > 10);
+        Assert.DoesNotContain(cfg.Tweaks, t => string.IsNullOrWhiteSpace(t.Id));
+        Assert.All(cfg.Tweaks.Where(t => !t.Id.StartsWith("app.", StringComparison.Ordinal)),
+            t => Assert.Equal("NotSet", t.State));
+
+        var path = Path.Combine(Path.GetTempPath(), $"NetworkTweaker_TEST_{DateTime.Now:yyyyMMdd-HHmmss}.nttweak");
+        await sut.SaveAtomicAsync(cfg, path);
+        Assert.True(File.Exists(path));
+        Assert.True(new FileInfo(path).Length > 20);
+
+        var loaded = await sut.LoadAndValidateAsync(path);
+        Assert.Equal(cfg.Tweaks.Count, loaded.Tweaks.Count);
+        File.Delete(path);
+    }
+
+    [Fact]
     public async Task Export_save_reload_roundtrip_on_desktop_path()
     {
         var (sut, adapters) = CreateServices();

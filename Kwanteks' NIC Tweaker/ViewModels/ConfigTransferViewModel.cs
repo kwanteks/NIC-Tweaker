@@ -107,44 +107,48 @@ public partial class ConfigTransferViewModel : ObservableObject
         var adapter = _getAdapter();
         if (adapter is null) { _setStatus("Select an adapter first.", true); return; }
 
+        // Pick path first — FileSavePicker fails (often empty COMException) while the busy overlay is up.
+        string path;
+        if (quickDesktop)
+        {
+            var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+            path = Path.Combine(desktop, SuggestFileName(adapter) + ".nttweak");
+            path = AvoidOverwrite(path);
+            RememberFolder(desktop);
+        }
+        else
+        {
+            var window = App.MainAppWindow;
+            if (window is null) return;
+            var picker = new FileSavePicker();
+            InitializeWithWindow.Initialize(picker, WindowNative.GetWindowHandle(window));
+            picker.SuggestedStartLocation = PickerLocationId.Desktop;
+            picker.SuggestedFileName = SuggestFileName(adapter);
+            picker.FileTypeChoices.Add("NIC Tweaker config", [".nttweak"]);
+            picker.FileTypeChoices.Add("JSON", [".json"]);
+            TrySetPickerFolder(picker, isSave: true);
+            var file = await picker.PickSaveFileAsync();
+            if (file is null) return;
+            path = file.Path;
+            RememberFolder(Path.GetDirectoryName(path));
+        }
+
         _beginBusy("Building config…");
         try
         {
             var cfg = await _config.BuildExportAsync(adapter, _getAddressFamily(), windowsDefaults);
-            string path;
-            if (quickDesktop)
-            {
-                var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
-                path = Path.Combine(desktop, SuggestFileName(adapter) + ".nttweak");
-                path = AvoidOverwrite(path);
-                RememberFolder(desktop);
-            }
-            else
-            {
-                var window = App.MainAppWindow;
-                if (window is null) return;
-                var picker = new FileSavePicker();
-                InitializeWithWindow.Initialize(picker, WindowNative.GetWindowHandle(window));
-                picker.SuggestedStartLocation = PickerLocationId.Desktop;
-                picker.SuggestedFileName = SuggestFileName(adapter);
-                picker.FileTypeChoices.Add("NIC Tweaker config", [".nttweak"]);
-                picker.FileTypeChoices.Add("JSON", [".json"]);
-                TrySetPickerFolder(picker, isSave: true);
-                var file = await picker.PickSaveFileAsync();
-                if (file is null) return;
-                path = file.Path;
-                RememberFolder(Path.GetDirectoryName(path));
-            }
-
             await _config.SaveAtomicAsync(cfg, path);
             ShowInfoBar("Config exported", $"{cfg.Tweaks.Count} settings → {path}", InfoBarSeverity.Success, path, restart: false);
             _setStatus($"Exported to {path}", false);
         }
         catch (Exception ex)
         {
-            _log.Error($"Export config: {ex.Message}");
-            ShowInfoBar("Export failed", ex.Message, InfoBarSeverity.Error, null, false);
-            _setStatus(ex.Message, true);
+            var detail = string.IsNullOrWhiteSpace(ex.Message)
+                ? $"{ex.GetType().Name} (0x{ex.HResult:X8})"
+                : ex.Message;
+            _log.Error($"Export config: {ex}");
+            ShowInfoBar("Export failed", detail, InfoBarSeverity.Error, null, false);
+            _setStatus(detail, true);
         }
         finally { _endBusy(); }
     }

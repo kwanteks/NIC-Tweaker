@@ -47,8 +47,41 @@ public sealed class ConfigTransferService : IConfigTransferService
         foreach (var def in defs)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (windowsDefaultsOnly)
+            try
             {
+                if (windowsDefaultsOnly)
+                {
+                    tweaks.Add(new ConfigTweakEntry
+                    {
+                        Id = def.Id,
+                        Section = def.Section.ToString(),
+                        Label = def.Label,
+                        State = "NotSet",
+                        ValueKind = def.ValueType.ToString(),
+                        Value = null
+                    });
+                    continue;
+                }
+
+                live!.TryGetValue(def.Id, out var cur);
+                var display = cur?.DisplayValue;
+                var notSet = cur is null || cur.IsNotSet
+                             || string.IsNullOrWhiteSpace(display)
+                             || display.StartsWith("Not set", StringComparison.OrdinalIgnoreCase)
+                             || string.Equals(display, "N/A for this adapter", StringComparison.OrdinalIgnoreCase);
+                tweaks.Add(new ConfigTweakEntry
+                {
+                    Id = def.Id,
+                    Section = def.Section.ToString(),
+                    Label = def.Label,
+                    State = notSet ? "NotSet" : "Set",
+                    ValueKind = def.ValueType.ToString(),
+                    Value = notSet ? null : (cur!.RawValue ?? display)
+                });
+            }
+            catch (Exception ex)
+            {
+                _log.Warn($"Export skip '{def.Id}': {ex.Message}");
                 tweaks.Add(new ConfigTweakEntry
                 {
                     Id = def.Id,
@@ -58,21 +91,7 @@ public sealed class ConfigTransferService : IConfigTransferService
                     ValueKind = def.ValueType.ToString(),
                     Value = null
                 });
-                continue;
             }
-
-            live!.TryGetValue(def.Id, out var cur);
-            var notSet = cur is null || cur.IsNotSet || cur.DisplayValue.StartsWith("Not set", StringComparison.OrdinalIgnoreCase)
-                         || string.Equals(cur.DisplayValue, "N/A for this adapter", StringComparison.OrdinalIgnoreCase);
-            tweaks.Add(new ConfigTweakEntry
-            {
-                Id = def.Id,
-                Section = def.Section.ToString(),
-                Label = def.Label,
-                State = notSet ? "NotSet" : "Set",
-                ValueKind = def.ValueType.ToString(),
-                Value = notSet ? null : (cur!.RawValue ?? cur.DisplayValue)
-            });
         }
 
         // Ancillary (NetBT / LMHOSTS / affinity)
@@ -85,10 +104,25 @@ public sealed class ConfigTransferService : IConfigTransferService
         }
         else
         {
-            tweaks.AddRange(CaptureAncillary(adapter));
+            try { tweaks.AddRange(CaptureAncillary(adapter)); }
+            catch (Exception ex)
+            {
+                _log.Warn($"Export ancillary skipped: {ex.Message}");
+            }
         }
 
-        var adapterInfo = await CaptureAdapterMetaAsync(adapter, cancellationToken);
+        ConfigAdapterInfo adapterInfo;
+        try { adapterInfo = await CaptureAdapterMetaAsync(adapter, cancellationToken); }
+        catch (Exception ex)
+        {
+            _log.Warn($"Export adapter meta skipped: {ex.Message}");
+            adapterInfo = new ConfigAdapterInfo
+            {
+                Description = adapter.InterfaceDescription,
+                InterfaceGuid = adapter.InterfaceGuid.ToString(),
+                NetCfgInstanceId = adapter.NetCfgInstanceId
+            };
+        }
         return new NetworkTweakerConfig
         {
             Format = ConfigFormat.Name,
