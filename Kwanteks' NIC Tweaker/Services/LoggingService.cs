@@ -32,7 +32,7 @@ public sealed class LoggingService : ILoggingService
 
     private void Add(string level, string message)
     {
-        var line = $"{DateTime.Now:HH:mm:ss} [{level}] {message}";
+        var line = $"{DateTime.Now:HH:mm:ss} [{level}] {PathRedaction.Redact(message)}";
         lock (_gate)
         {
             _entries.Add(line);

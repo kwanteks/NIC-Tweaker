@@ -137,6 +137,16 @@ public class ConfigTransferTests
     }
 
     [Fact]
+    public void PathRedaction_strips_user_profile()
+    {
+        var profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var raw = profile + @"\OneDrive\Desktop\secret.nttweak";
+        var redacted = PathRedaction.Redact(raw);
+        Assert.DoesNotContain(Environment.UserName, redacted, StringComparison.OrdinalIgnoreCase);
+        Assert.StartsWith("%USERPROFILE%", redacted, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task Export_windows_defaults_save_reload_roundtrip()
     {
         var (sut, adapters) = CreateServices();

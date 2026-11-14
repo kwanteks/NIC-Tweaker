@@ -155,7 +155,7 @@
                     <Button Content="Intel" Style="{StaticResource TweakerButtonStyle}" Command="{x:Bind ViewModel.LoadPresetCommand}" CommandParameter="Intel" ToolTipService.ToolTip="Loads Intel power-saving preset into the UI. Unsupported keywords are skipped. Nothing is written until Apply." />
                     <Button Content="Realtek" Style="{StaticResource TweakerButtonStyle}" Command="{x:Bind ViewModel.LoadPresetCommand}" CommandParameter="Realtek" ToolTipService.ToolTip="Loads Realtek power-saving preset into the UI. Unsupported keywords are skipped. Nothing is written until Apply." />
                     <TextBlock FontSize="11" FontStyle="Italic" Foreground="{ThemeResource TweakerMutedTextBrush}" VerticalAlignment="Center"
-                               Text="Presets fill the UI only until Apply. Backup / Revert last restores prior registry values." />
+                               Text="Kwanteks' NIC Tweaker — remake of st1icky's network adapter tweaker. Presets fill the UI only until Apply. Backup / Revert last restores prior registry values." />
                 </StackPanel>
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
                     <Button Content="Backup" Style="{StaticResource TweakerButtonStyle}">

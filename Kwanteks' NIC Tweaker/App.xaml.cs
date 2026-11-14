@@ -102,7 +102,7 @@ public partial class App : Application
             AppPaths.EnsureCreated();
             var sb = new StringBuilder();
             sb.AppendLine($"==== {DateTimeOffset.Now:o} — {source} ====");
-            sb.AppendLine(ex?.ToString() ?? "(null)");
+            sb.AppendLine(PathRedaction.Redact(ex?.ToString() ?? "(null)"));
             sb.AppendLine();
             File.AppendAllText(AppPaths.CrashLogFile, sb.ToString());
             try { File.AppendAllText(AppPaths.AppLogFile, sb.ToString()); } catch { /* ignore */ }

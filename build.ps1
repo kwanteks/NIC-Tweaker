@@ -51,6 +51,11 @@ $version = Get-ProjectVersion $proj
 Write-Host "Version: $version"
 
 Write-Host '=== dotnet publish ===' -ForegroundColor Cyan
+# Neutral NuGet + source paths so PDBs/binaries do not embed C:\Users\<you>\...
+$nugetCache = 'C:\ProgramData\KwanteksBuild\nuget'
+New-Item -ItemType Directory -Force -Path $nugetCache | Out-Null
+$env:NUGET_PACKAGES = $nugetCache
+
 # Prefer a path without apostrophe for MSBuild/XAML if mirrored copy exists.
 $buildProj = $proj
 $tempMirror = 'C:\temp\nictweaker-publish'
@@ -61,6 +66,7 @@ if ($proj -match "'") {
   $buildProj = Join-Path $tempMirror "Kwanteks' NIC Tweaker.csproj"
 }
 
+# ContinuousIntegrationBuild rewrites local source paths; NUGET_PACKAGES avoids Users\<you>\.nuget embeds.
 & dotnet publish $buildProj `
   -c Release `
   -r win-x64 `
@@ -69,6 +75,8 @@ if ($proj -match "'") {
   -p:PublishSingleFile=false `
   -p:PublishTrimmed=false `
   -p:PublishAot=false `
+  -p:ContinuousIntegrationBuild=true `
+  -p:Deterministic=true `
   -o $publishDir
 
 if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed ($LASTEXITCODE)" }
@@ -135,6 +143,33 @@ if ($pdbs) {
   Compress-Archive -Path (Join-Path $symbolsDir '*') -DestinationPath $symZip -CompressionLevel Optimal
   Write-Host "Symbols: $symZip"
 }
+
+# Fail the build if a shipped artifact still embeds the local profile path.
+Write-Host '=== Privacy scan ===' -ForegroundColor Cyan
+$userNeedle = $env:USERNAME
+$profileNeedle = $env:USERPROFILE
+$leakHits = @()
+$scanFiles = @()
+$scanFiles += Get-ChildItem -LiteralPath $publishDir -Recurse -Include *.exe,*.dll -File -ErrorAction SilentlyContinue
+if (Test-Path -LiteralPath $symbolsDir) {
+  $scanFiles += Get-ChildItem -LiteralPath $symbolsDir -Recurse -Include *.pdb -File -ErrorAction SilentlyContinue
+}
+foreach ($f in $scanFiles) {
+  $bytes = [System.IO.File]::ReadAllBytes($f.FullName)
+  $ascii = [System.Text.Encoding]::ASCII.GetString($bytes)
+  $uni = [System.Text.Encoding]::Unicode.GetString($bytes)
+  $blob = $ascii + "`n" + $uni
+  if ($blob.Contains($profileNeedle)) {
+    $leakHits += "$($f.FullName) contains USERPROFILE"
+  }
+  elseif ($blob.Contains("Users\$userNeedle") -or $blob.Contains("Users/$userNeedle")) {
+    $leakHits += "$($f.FullName) contains Users\$userNeedle"
+  }
+}
+if ($leakHits.Count -gt 0) {
+  throw ("Privacy leak in build output:`n  - " + ($leakHits -join "`n  - "))
+}
+Write-Host 'Privacy scan OK'
 
 Write-Host "Publish OK: $publishDir ($((Get-ChildItem $publishDir -Recurse -File).Count) files)"
 

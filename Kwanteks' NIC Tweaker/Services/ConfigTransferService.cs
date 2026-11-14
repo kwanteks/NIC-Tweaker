@@ -145,7 +145,7 @@ public sealed class ConfigTransferService : IConfigTransferService
         var json = JsonSerializer.Serialize(config, JsonOptions);
         await File.WriteAllTextAsync(temp, json, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false), cancellationToken);
         File.Move(temp, path, overwrite: true);
-        _log.Info($"Config exported: {path} ({config.Tweaks.Count} tweaks)");
+        _log.Info($"Config exported: {Path.GetFileName(path)} ({config.Tweaks.Count} tweaks)");
     }
 
     public async Task<NetworkTweakerConfig> LoadAndValidateAsync(string path, CancellationToken cancellationToken = default)

@@ -138,8 +138,9 @@ public partial class ConfigTransferViewModel : ObservableObject
         {
             var cfg = await _config.BuildExportAsync(adapter, _getAddressFamily(), windowsDefaults);
             await _config.SaveAtomicAsync(cfg, path);
-            ShowInfoBar("Config exported", $"{cfg.Tweaks.Count} settings → {path}", InfoBarSeverity.Success, path, restart: false);
-            _setStatus($"Exported to {path}", false);
+            var shown = Path.GetFileName(path);
+            ShowInfoBar("Config exported", $"{cfg.Tweaks.Count} settings → {shown}", InfoBarSeverity.Success, path, restart: false);
+            _setStatus($"Exported to {shown}", false);
         }
         catch (Exception ex)
         {
