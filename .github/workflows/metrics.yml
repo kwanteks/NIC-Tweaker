@@ -1,9 +1,8 @@
 # NicTuner Metrics — regenerates nictuner-metrics.svg via lowlighter/metrics.
 #
-# Secret: GH_PAT (fine-grained or classic personal access token)
-#   Scopes needed: read:user, read:org, repo
-#   Traffic plugin also needs push access on this repo (repo scope covers that).
-#   Do not use GITHUB_TOKEN alone — traffic and some plugins need a PAT.
+# Token: uses secrets.GH_PAT when set, otherwise github.token (no secret required).
+# Optional GH_PAT (classic or fine-grained): read:user, read:org, repo
+#   Needed only for plugin_traffic (GitHub traffic API requires a PAT with push access).
 name: NicTuner Metrics
 
 on:
@@ -27,11 +26,13 @@ jobs:
         uses: actions/checkout@v7.0.1
         with:
           ref: ${{ github.ref_name }}
+          token: ${{ secrets.GH_PAT || github.token }}
 
       - name: Generate metrics SVG
         uses: lowlighter/metrics@v3.34
         with:
-          token: ${{ secrets.GH_PAT }}
+          # Empty GH_PAT was failing the job; github.token is enough for repo metrics.
+          token: ${{ secrets.GH_PAT || github.token }}
           # Save via git commit below — API save can drop the existing file SHA.
           output_action: none
           filename: nictuner-metrics.svg
@@ -45,8 +46,8 @@ jobs:
           plugin_followup: yes
           plugin_contributors: yes
           plugin_stargazers: yes
-          # Requires PAT with push access (repo scope) to read traffic.
-          plugin_traffic: yes
+          # Off by default: traffic API rejects github.token. Set GH_PAT + flip to yes to enable.
+          plugin_traffic: no
 
       - name: Copy SVG to repo root
         run: |
