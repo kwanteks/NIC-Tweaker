@@ -1,5 +1,7 @@
 # Kwanteks' NIC Tweaker
 
+![Metrics](./nictuner-metrics.svg)
+
 WinUI 3 desktop app for tuning Windows NIC / TCP / RSS settings. Remake of st1icky’s network adapter tweaker.
 
 Requires **Windows 10 1809+ (x64)** and runs **elevated** (UAC).
