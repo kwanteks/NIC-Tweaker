@@ -75,5 +75,31 @@ dotnet test "Kwanteks' NIC Tweaker.Tests\Kwanteks' NIC Tweaker.Tests.csproj" -c 
 - Build needs the Windows App SDK / Visual Studio AppxPackage build tools for the WinUI PRI step; the csproj points at VS 2022/18 install paths when the plain .NET SDK cannot find them.
 - Bundled `intel.json` / `realtek.json` disable common vendor power-saving features (may increase power draw). Unsupported keywords are skipped per adapter. Edit copies under `%ProgramData%\KwanteksNICTweaker\Presets` if you customize them (vendor files are refreshed from the install bundle on launch).
 
+## Contributing
+
+1. Fork the repo, then clone your fork:
+
+```powershell
+git clone https://github.com/<your-username>/NIC-Tweaker.git
+cd NIC-Tweaker
+```
+
+2. Open **`Kwanteks' NIC Tweaker\Kwanteks' NIC Tweaker.sln`** in Visual Studio 2022 (17.8+) or VS 18. Install workloads: **.NET desktop development** and **Windows application development** (WinUI / Windows App SDK). Target **x64** (not Any CPU).
+3. Set **`Kwanteks' NIC Tweaker`** as the startup project, then **Debug → Start** (F5). The app needs elevation — accept UAC, or run Visual Studio as Administrator if launch fails.
+4. Before a PR: run tests and keep diffs focused.
+
+```powershell
+dotnet test "Kwanteks' NIC Tweaker.Tests\Kwanteks' NIC Tweaker.Tests.csproj" -c Release -p:Platform=x64 -p:AppxGeneratePriEnabled=false
+```
+
+Helpful notes:
+
+- Prefer small PRs (one bug or feature). Do not commit `bin/`, `obj/`, `publish/`, or `dist/` (already gitignored).
+- Presets live in `Kwanteks' NIC Tweaker\Data\Presets\`; catalog IDs are in `Services\TweakCatalog.cs`. UI grouping is `Services\UiGroups.cs`.
+- Full installer: `.\build.ps1` (needs [Inno Setup 6](https://jrsoftware.org/isdl.php)). CI also builds via **Actions → installer**.
+- Open an issue first for large changes. Bug reports: use the issue template and include adapter model + Windows build when relevant.
+
 ## Credits
-- Credits to Jayy and WinTuner for helping me with remaking the NIC Tuner. Credits to St1cky for the Original Script
+- Credits to Jayy and WinTuner for helping me with remaking the NIC Tuner. 
+- Credits to St1cky for the Original Script
+
